@@ -55,6 +55,8 @@ modules:
 
   - name: xtrkcad
     buildsystem: cmake-ninja
+    config-opts:
+      - -DXTRKCAD_BUILD_FLATPAK=1
     sources:
       - type: archive
         url: https://download.sourceforge.net/project/xtrkcad-fork/XTrackCad/Version%205.3.1/xtrkcad-source-5.3.1GA.tar.gz
@@ -69,4 +71,5 @@ modules:
           - patches/lib.CMakeLists.txt.patch
           - patches/bin.CMakeLists.txt.patch
           - patches/bitmaps.CMakeLists.txt.patch
+          - patches/gtklib.patch
     builddir: true

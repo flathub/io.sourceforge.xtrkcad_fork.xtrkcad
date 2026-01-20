@@ -1,0 +1,37 @@
+diff -uNrb -X .diff_ignore --no-dereference xtrkcad-fork-xtrkcad/app/wlib/gtklib/wpref.c new-fork-xtrkcad/app/wlib/gtklib/wpref.c
+--- xtrkcad-fork-xtrkcad/app/wlib/gtklib/wpref.c	2026-01-20 04:51:36.182867322 -0500
++++ new-fork-xtrkcad/app/wlib/gtklib/wpref.c	2026-01-20 05:05:00.358728105 -0500
+@@ -177,7 +177,11 @@
+ 		wNoticeEx( NT_ERROR, _("HOME is not set"), _("Exit"), NULL);
+ 		wExit(0);
+ 	}
++#ifdef XTRKCAD_BUILD_FLATPAK
++	sprintf( appWorkDir, "%s/.%s-fp", homeDir, wlibGetAppName() );
++#else
+ 	sprintf( appWorkDir, "%s/.%s", homeDir, wlibGetAppName() );
++#endif
+ #ifndef __APPLE__
+ 	if ( strstr( XTRKCAD_VERSION, "Beta" ) != NULL ) {
+ 		strcat( appWorkDir, "-beta" );
+@@ -197,7 +201,11 @@
+ 			 */
+ 			struct stat stFileInfo;
+ 			char appEtcConfig[BUFSIZ];
++#ifdef XTRKCAD_BUILD_FLATPAK
++			sprintf( appEtcConfig, "/etc/%s-fp.rc", wlibGetAppName());
++#else
+ 			sprintf( appEtcConfig, "/etc/%s.rc", wlibGetAppName());
++#endif
+ 
+ 			if ( stat( appEtcConfig, &stFileInfo ) == 0 ) {
+ 				char copyConfigCmd[(BUFSIZ * 2) + 3];
+diff -uNrb --no-dereference xtrkcad-fork-xtrkcad/xtrkcad-config.h.in new-fork-xtrkcad/xtrkcad-config.h.in
+--- xtrkcad-fork-xtrkcad/xtrkcad-config.h.in	2026-01-20 04:51:36.189534045 -0500
++++ new-fork-xtrkcad/xtrkcad-config.h.in	2026-01-20 05:09:05.233636756 -0500
+@@ -33,4 +33,6 @@
+ #define XTRKCAD_PARAMVERSIONVERSION "5.2.0"
+ #define XTRKCAD_MINPARAMVERSION (1)
+ 
++#cmakedefine XTRKCAD_BUILD_FLATPAK
++
+ #endif // !XTRKCAD_CONFIG_H

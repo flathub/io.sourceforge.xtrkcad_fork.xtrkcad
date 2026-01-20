@@ -1,8 +1,8 @@
 
-diff -uNrw -X .diff_ignore --no-dereference xtrkcad-fork-xtrkcad/app/lib/xtrkcad.metainfo.xml new-fork-xtrkcad/app/lib/xtrkcad.metainfo.xml
+diff -uNrb -X .diff_ignore --no-dereference xtrkcad-fork-xtrkcad/app/lib/xtrkcad.metainfo.xml new-fork-xtrkcad/app/lib/xtrkcad.metainfo.xml
 --- xtrkcad-fork-xtrkcad/app/lib/xtrkcad.metainfo.xml	1969-12-31 19:00:00.000000000 -0500
-+++ new-fork-xtrkcad/app/lib/xtrkcad.metainfo.xml	2025-12-05 09:17:45.921415292 -0500
-@@ -0,0 +1,32 @@
++++ new-fork-xtrkcad/app/lib/xtrkcad.metainfo.xml	2026-01-20 06:03:03.202679601 -0500
+@@ -0,0 +1,33 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<component type="desktop-application">
 +  <id>io.sourceforge.xtrkcad_fork.xtrkcad</id>
@@ -13,6 +13,7 @@ diff -uNrw -X .diff_ignore --no-dereference xtrkcad-fork-xtrkcad/app/lib/xtrkcad
 +    <p><em>Flatpak not officially supported, yet ;-) ; search for "flatpak" from the faq/home wiki</em></p>
 +  </description>
 +  <releases>
++    <release version="5.3.1GA-fp1" date="2026-01-20"/>
 +    <release version="5.3.1GA" date="2025-10-13"/>
 +  </releases>
 +  <content_rating type="oars-1.1" />
