@@ -1,7 +1,7 @@
 
 diff -uNrb -X .diff_ignore --no-dereference xtrkcad-fork-xtrkcad/app/lib/xtrkcad.metainfo.xml new-fork-xtrkcad/app/lib/xtrkcad.metainfo.xml
 --- xtrkcad-fork-xtrkcad/app/lib/xtrkcad.metainfo.xml	1969-12-31 19:00:00.000000000 -0500
-+++ new-fork-xtrkcad/app/lib/xtrkcad.metainfo.xml	2026-01-24 16:19:48.600619992 -0500
++++ new-fork-xtrkcad/app/lib/xtrkcad.metainfo.xml	2026-01-24 16:56:11.262580305 -0500
 @@ -0,0 +1,40 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<component type="desktop-application">
@@ -17,7 +17,7 @@ diff -uNrb -X .diff_ignore --no-dereference xtrkcad-fork-xtrkcad/app/lib/xtrkcad
 +        <description>
 +            <ul>
 +                <li>Use ~/.xtrkcad-fp as working directory</li>
-+                <li>For 5.3.1GA changelog, visit <url type="homepage">https://sourceforge.net/projects/xtrkcad-fork/files/XTrackCad/Version%205.3.1/</url></li>
++                <li>For 5.3.1GA changelog, visit https://sourceforge.net/projects/xtrkcad-fork/files/XTrackCad/Version%205.3.1/</li>
 +            </ul>
 +        </description>
 +    </release>
