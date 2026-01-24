@@ -1,8 +1,8 @@
 
 diff -uNrb -X .diff_ignore --no-dereference xtrkcad-fork-xtrkcad/app/lib/xtrkcad.metainfo.xml new-fork-xtrkcad/app/lib/xtrkcad.metainfo.xml
 --- xtrkcad-fork-xtrkcad/app/lib/xtrkcad.metainfo.xml	1969-12-31 19:00:00.000000000 -0500
-+++ new-fork-xtrkcad/app/lib/xtrkcad.metainfo.xml	2026-01-20 06:03:03.202679601 -0500
-@@ -0,0 +1,33 @@
++++ new-fork-xtrkcad/app/lib/xtrkcad.metainfo.xml	2026-01-24 16:56:11.262580305 -0500
+@@ -0,0 +1,40 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<component type="desktop-application">
 +  <id>io.sourceforge.xtrkcad_fork.xtrkcad</id>
@@ -13,7 +13,14 @@ diff -uNrb -X .diff_ignore --no-dereference xtrkcad-fork-xtrkcad/app/lib/xtrkcad
 +    <p><em>Flatpak not officially supported, yet ;-) ; search for "flatpak" from the faq/home wiki</em></p>
 +  </description>
 +  <releases>
-+    <release version="5.3.1GA-fp1" date="2026-01-20"/>
++    <release version="5.3.1GA-fp1" date="2026-01-20">
++        <description>
++            <ul>
++                <li>Use ~/.xtrkcad-fp as working directory</li>
++                <li>For 5.3.1GA changelog, visit https://sourceforge.net/projects/xtrkcad-fork/files/XTrackCad/Version%205.3.1/</li>
++            </ul>
++        </description>
++    </release>
 +    <release version="5.3.1GA" date="2025-10-13"/>
 +  </releases>
 +  <content_rating type="oars-1.1" />
