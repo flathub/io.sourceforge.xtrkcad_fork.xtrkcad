@@ -58,6 +58,6 @@ modules:
       - -DXTRKCAD_BUILD_FLATPAK=1
     sources:
       - type: archive
-        url: https://download.sourceforge.net/project/xtrkcad-fork/Development/Flatpak/TestSources/source-gtk3-6285.tar.gz
-        sha256: f3906ed4f0fe63918249a6c8720a3e1b9c21856db36cf218ebbce69b08ea54c4
+        url: https://download.sourceforge.net/project/xtrkcad-fork/Development/Flatpak/TestSources/source-gtk3-6587.tar.gz
+        sha256: 645cec698bf36869579e48a9349c28ee355897b90451b6b9331545e4b5528696
     builddir: true
