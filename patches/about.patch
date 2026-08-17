@@ -5,7 +5,7 @@ diff -uNrb -X .diff_ignore --no-dereference xtrkcad-fork-xtrkcad/app/bin/smalldl
  /*--------------------------------------------------------------------*/
 
  #define ABOUT_TEXT DESCRIPTION \
-+		"\n\nDEBUG: changeset:   6587:1a6f3a89fdfa" \
++		"\n\nDEBUG: changeset:   6896:3f0e6f6437a9" \
  		"\n\nXTrackCAD is Copyright 2003 by Sillub Technology and 2017" \
  		" by Bob Blackwell, Martin Fischer, Adam Richards and Russell Shilling.\n" \
  		"\nIcons by: Tango Desktop Project (http://tango.freedesktop.org)\n" \

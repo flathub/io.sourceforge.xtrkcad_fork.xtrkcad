@@ -1,17 +1,19 @@
-id: io.sourceforge.xtrkcad_fork.xtrkcad-gtk
+id: io.sourceforge.xtrkcad_fork.xtrkcad-5_4_0
 runtime: org.freedesktop.Platform
 runtime-version: '25.08'
 sdk: org.freedesktop.Sdk
 command: run-xtrkcad.sh
 
 finish-args:
+  - --socket=wayland
+  - --socket=fallback-x11
   - --socket=x11
   - --socket=cups
   - --socket=pulseaudio
   - --share=ipc
   - --device=dri
   - --filesystem=home
-  - --env=XTRKCAD_APP_ID=io.sourceforge.xtrkcad_fork.xtrkcad-gtk
+  - --env=XTRKCAD_APP_ID=io.sourceforge.xtrkcad_fork.xtrkcad-5_4_0
 
 modules:
   - name: libzip
@@ -34,8 +36,19 @@ modules:
       - -DCMAKE_POLICY_VERSION_MINIMUM=3.5
     sources:
       - type: archive
-        url: https://github.com/nih-at/libzip/releases/download/v1.8.0/libzip-1.8.0.tar.gz
-        sha256: 30ee55868c0a698d3c600492f2bea4eb62c53849bcf696d21af5eb65f3f3839e
+        url: https://github.com/nih-at/libzip/releases/download/v1.11.4/libzip-1.11.4.tar.gz
+        sha256: 82e9f2f2421f9d7c2466bbc3173cd09595a88ea37db0d559a9d0a2dc60dc722e
+    cleanup:
+      - '*'
+
+  - name: mxml
+    buildsystem: autotools
+    config-opts:
+      - --prefix=/app
+    sources:
+      - type: archive
+        url: https://github.com/michaelrsweet/mxml/releases/download/v3.3.1/mxml-3.3.1.tar.gz
+        sha256: 0c663ed1fe393b5619f80101798202eea43534abd7c8aff389022fd8c1dacc32
     cleanup:
       - '*'
 
@@ -58,8 +71,8 @@ modules:
       - -DXTRKCAD_BUILD_FLATPAK=1
     sources:
       - type: archive
-        url: https://download.sourceforge.net/project/xtrkcad-fork/Development/Flatpak/TestSources/source-gtk3-6587.tar.gz
-        sha256: 645cec698bf36869579e48a9349c28ee355897b90451b6b9331545e4b5528696
+        url: https://download.sourceforge.net/project/xtrkcad-fork/Development/Flatpak/TestSources/source-5.4.0.3f0e6f6437a9.tar.gz
+        sha256: 48d077613d81ab6160b9a95ceaf9c37f42a3b1847d8120671b2a33680511f60a
       - type: patch
         paths:
           - patches/about.patch
