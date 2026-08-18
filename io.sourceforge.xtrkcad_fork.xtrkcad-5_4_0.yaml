@@ -5,8 +5,6 @@ sdk: org.freedesktop.Sdk
 command: run-xtrkcad.sh
 
 finish-args:
-  - --socket=wayland
-  - --socket=fallback-x11
   - --socket=x11
   - --socket=cups
   - --socket=pulseaudio
@@ -72,7 +70,7 @@ modules:
     sources:
       - type: archive
         url: https://download.sourceforge.net/project/xtrkcad-fork/Development/Flatpak/TestSources/source-5.4.0.3f0e6f6437a9.tar.gz
-        sha256: 48d077613d81ab6160b9a95ceaf9c37f42a3b1847d8120671b2a33680511f60a
+        sha256: 562cf3fadf09f22c612e179891559ec11190726b54e990b7ce5646f0d2d16661
       - type: patch
         paths:
           - patches/about.patch
