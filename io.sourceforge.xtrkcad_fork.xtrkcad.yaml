@@ -75,5 +75,4 @@ modules:
         paths:
           - patches/about.patch
           - patches/remove_version_refs.patch
-          - patches/print_xtrkcadlib_var.patch
     builddir: true
