@@ -74,4 +74,5 @@ modules:
       - type: patch
         paths:
           - patches/about.patch
+          - patches/remove_version_refs.patch
     builddir: true
