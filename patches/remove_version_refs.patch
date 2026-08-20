@@ -75,3 +75,17 @@ diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference ken-source-orig/app/b
  #else
  char * sProdNameLower = product "-" XTRKCAD_VERSION;
  #endif
+diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference ken-source-orig/app/lib/CMakeLists.txt ken-source-new/app/lib/CMakeLists.txt
+--- ken-source-orig/app/lib/CMakeLists.txt	2026-08-10 05:08:30.000000000 -0400
++++ ken-source-new/app/lib/CMakeLists.txt	2026-08-20 05:03:01.303626909 -0400
+@@ -78,8 +78,8 @@
+ 			)
+ 		install(FILES
+ 			xtrkcad.xml
+-			DESTINATION "share/applications"
+-			RENAME ${XTRKCAD_BIN}.xml
++			DESTINATION "share/mime/packages"
++			RENAME io.sourceforge.xtrkcad_fork.${XTRKCAD_BIN}.xml
+ 			)
+ 		install(FILES
+ 			xtrkcad.metainfo.xml
