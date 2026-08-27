@@ -69,10 +69,9 @@ modules:
       - -DXTRKCAD_BUILD_FLATPAK=1
     sources:
       - type: archive
-        url: https://download.sourceforge.net/project/xtrkcad-fork/Development/Flatpak/TestSources/source-5.4.0.3f0e6f6437a9.tar.gz
-        sha256: 562cf3fadf09f22c612e179891559ec11190726b54e990b7ce5646f0d2d16661
+        url: https://download.sourceforge.net/project/xtrkcad-fork/Development/Flatpak/TestSources/source-5.4.0.6f9ba15ab942.tar.gz
+        sha256: f64284f2c7866dd03b0435fdac4af7fe91a6f221f4eedfc0fd86a3171255e5d5
       - type: patch
         paths:
           - patches/about.patch
-          - patches/remove_version_refs.patch
     builddir: true
