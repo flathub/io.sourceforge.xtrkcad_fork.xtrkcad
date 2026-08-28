@@ -67,6 +67,7 @@ modules:
     buildsystem: cmake-ninja
     config-opts:
       - -DXTRKCAD_BUILD_FLATPAK=1
+      - -DXTRKCAD_FLATPAK_NOVERSION=1
     sources:
       - type: archive
         url: https://download.sourceforge.net/project/xtrkcad-fork/Development/Flatpak/TestSources/source-5.4.0.6f9ba15ab942.tar.gz
