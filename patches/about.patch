@@ -1,48 +1,12 @@
 diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference ken-source-orig/app/bin/smalldlg.c ken-source-new/app/bin/smalldlg.c
---- ken-source-orig/app/bin/smalldlg.c	2026-08-27 13:18:24.000000000 -0400
-+++ ken-source-new/app/bin/smalldlg.c	2026-08-27 15:59:37.016520667 -0400
-@@ -218,7 +218,7 @@
+--- ken-source-orig/app/bin/smalldlg.c	2026-09-17 08:00:00.000000000 -0400
++++ ken-source-new/app/bin/smalldlg.c	2026-09-17 10:00:26.976823751 -0400
+@@ -224,7 +224,7 @@
  
  static paramTextData_t aboutTextData = { 50, 10 };
  
 -#define DESCRIPTION N_("XTrackCAD is a CAD (computer-aided design) program for designing model railroad layouts.")
-+#define DESCRIPTION N_("Debug XtrackCad build from KensTest 7040:6f9ba15ab942.\n\nXTrackCAD is a CAD (computer-aided design) program for designing model railroad layouts.")
++#define DESCRIPTION N_("Flatpak build from GTK3V2MAIN 7324:027d8429d784\n\nXTrackCAD is a CAD (computer-aided design) program for designing model railroad layouts.")
  static paramData_t aboutPLs[] = {
  #define I_ABOUTDRAW				(0)
  	{   PD_BITMAP, NULL, "about", PDO_NOPSHUPD, NULL, NULL, 0 },
-diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference ken-source-orig/app/wlib/gtk3lib/unix/ixpaths.c ken-source-new/app/wlib/gtk3lib/unix/ixpaths.c
---- ken-source-orig/app/wlib/gtk3lib/unix/ixpaths.c	2026-08-27 12:31:47.000000000 -0400
-+++ ken-source-new/app/wlib/gtk3lib/unix/ixpaths.c	2026-08-27 18:48:49.198972974 -0400
-@@ -143,7 +143,7 @@
- 	}
- 	strcpy( ep, "LIB" );
- 	ep = getenv( envvar );
--	printf("DEBUG: %s=%s\n", envvar, ep);
-+	//printf("DEBUG: %s=%s\n", envvar, ep);
- 	searchDirs[ option++ ] = g_strdup( ep );
- 
- 	// option 2: relative path to share subdir
-diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference ken-source-orig/CMakeLists.txt ken-source-new/CMakeLists.txt
---- ken-source-orig/CMakeLists.txt	2026-08-27 12:31:47.000000000 -0400
-+++ ken-source-new/CMakeLists.txt	2026-08-27 16:36:47.233928539 -0400
-@@ -145,7 +145,9 @@
- #
- # Note: flatpak builds cannot have periods in the name since periods delimit
- #       the namespace.
--if (XTRKCAD_BUILD_FLATPAK)
-+if (XTRKCAD_BUILD_FLATPAK AND XTRKCAD_FLATPAK_NOVERSION)
-+	set(XTRKCAD_BIN "xtrkcad")
-+elseif (XTRKCAD_BUILD_FLATPAK)
- 	string(REPLACE "." "_" XTRKCAD_VERSION_ID "${XTRKCAD_FILE_VERSION}")
- 	set(XTRKCAD_BIN "xtrkcad${XTRKCAD_VERSION_ID}")
- else()
-diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference ken-source-orig/xtrkcad-config.h.in ken-source-new/xtrkcad-config.h.in
---- ken-source-orig/xtrkcad-config.h.in	2026-08-25 08:58:39.000000000 -0400
-+++ ken-source-new/xtrkcad-config.h.in	2026-08-27 16:34:13.106744726 -0400
-@@ -41,5 +41,6 @@
- #define XTRKCAD_MINPARAMVERSION (1)
- 
- #cmakedefine01 XTRKCAD_BUILD_FLATPAK
-+#cmakedefine01 XTRKCAD_FLATPAK_NOVERSION
- 
- #endif // !XTRKCAD_CONFIG_H

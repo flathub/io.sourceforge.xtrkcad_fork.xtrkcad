@@ -1,6 +1,6 @@
 id: io.sourceforge.xtrkcad_fork.xtrkcad
 runtime: org.freedesktop.Platform
-runtime-version: '25.08'
+runtime-version: '26.08'
 sdk: org.freedesktop.Sdk
 command: run-xtrkcad.sh
 
@@ -70,8 +70,8 @@ modules:
       - -DXTRKCAD_FLATPAK_NOVERSION=1
     sources:
       - type: archive
-        url: https://download.sourceforge.net/project/xtrkcad-fork/Development/Flatpak/TestSources/source-5.4.0.6f9ba15ab942.tar.gz
-        sha256: f64284f2c7866dd03b0435fdac4af7fe91a6f221f4eedfc0fd86a3171255e5d5
+        url: https://download.sourceforge.net/project/xtrkcad-fork/Development/Flatpak/TestSources/source-5.4.0.027d8429d784.tar.gz
+        sha256: 6c7a69fe8b0e58aeebd1a9faade4685936d722de46c79ba447c17abad9279fbb
       - type: patch
         paths:
           - patches/about.patch
