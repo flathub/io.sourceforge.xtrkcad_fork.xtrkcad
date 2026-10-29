@@ -1,7 +1,52 @@
-
-diff -uNrw -X .diff_ignore --no-dereference xtrkcad-fork-xtrkcad/app/lib/xtrkcad_logo_128x128.svg new-fork-xtrkcad/app/lib/xtrkcad_logo_128x128.svg
---- xtrkcad-fork-xtrkcad/app/lib/xtrkcad_logo_128x128.svg	1969-12-31 19:00:00.000000000 -0500
-+++ new-fork-xtrkcad/app/lib/xtrkcad_logo_128x128.svg	2025-12-05 09:32:09.730338884 -0500
+diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference ken-source-orig/app/lib/CMakeLists.txt ken-source-new/app/lib/CMakeLists.txt
+--- ken-source-orig/app/lib/CMakeLists.txt	2026-10-29 04:15:08.000000000 -0400
++++ ken-source-new/app/lib/CMakeLists.txt	2026-10-29 10:38:37.001730430 -0400
+@@ -67,14 +67,25 @@
+         )
+ 	install(FILES
+ 		xtrkcad${XTRKCAD_BETA}.desktop
+-		DESTINATION "${XTRKCAD_SHARE_INSTALL_DIR}/applications"
++		DESTINATION "share/applications"
++		RENAME io.sourceforge.xtrkcad_fork.xtrkcad.desktop
+ 		)
+ 	install(FILES
+ 		xtrkcad.xml
+-		DESTINATION "${XTRKCAD_SHARE_INSTALL_DIR}/applications"
++		DESTINATION "share/applications"
+ 		)
+ 	install(FILES
+ 		xtrkcad.png
+ 		DESTINATION "${XTRKCAD_SHARE_INSTALL_DIR}/pixmaps"
+ 		)
++	install(FILES
++		xtrkcad.metainfo.xml
++		DESTINATION "share/metainfo"
++		RENAME io.sourceforge.xtrkcad_fork.xtrkcad.metainfo.xml
++		)
++	install(FILES
++		xtrkcad_logo_128x128.svg
++		DESTINATION "share/icons/hicolor/scalable/apps"
++		RENAME io.sourceforge.xtrkcad_fork.xtrkcad.svg
++		)
+ endif()
+diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference ken-source-orig/app/lib/xtrkcad.desktop ken-source-new/app/lib/xtrkcad.desktop
+--- ken-source-orig/app/lib/xtrkcad.desktop	2026-10-29 04:15:08.000000000 -0400
++++ ken-source-new/app/lib/xtrkcad.desktop	2026-10-29 10:38:37.001884821 -0400
+@@ -1,9 +1,8 @@
+ [Desktop Entry]
+ Name=XTrackCAD
+ Comment=Design model railroad layouts
+-Exec=xtrkcad
+-Icon=xtrkcad
++Exec=run-xtrkcad.sh
++Icon=io.sourceforge.xtrkcad_fork.xtrkcad
+ Terminal=false
+ Type=Application
+ Categories=Graphics
+-
+diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference ken-source-orig/app/lib/xtrkcad_logo_128x128.svg ken-source-new/app/lib/xtrkcad_logo_128x128.svg
+--- ken-source-orig/app/lib/xtrkcad_logo_128x128.svg	1969-12-31 19:00:00.000000000 -0500
++++ ken-source-new/app/lib/xtrkcad_logo_128x128.svg	2026-10-29 10:38:37.001988622 -0400
 @@ -0,0 +1,24 @@
 +<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 +<!-- Created with Inkscape (http://www.inkscape.org/) -->
@@ -27,3 +72,62 @@ diff -uNrw -X .diff_ignore --no-dereference xtrkcad-fork-xtrkcad/app/lib/xtrkcad
 +       id="image1" />
 +  </g>
 +</svg>
+diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference ken-source-orig/app/lib/xtrkcad.metainfo.xml ken-source-new/app/lib/xtrkcad.metainfo.xml
+--- ken-source-orig/app/lib/xtrkcad.metainfo.xml	1969-12-31 19:00:00.000000000 -0500
++++ ken-source-new/app/lib/xtrkcad.metainfo.xml	2026-10-29 11:22:57.560999949 -0400
+@@ -0,0 +1,55 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<component type="desktop-application">
++  <id>io.sourceforge.xtrkcad_fork.xtrkcad</id>
++  <name>XTrackCAD</name>
++  <summary>Design model railroad layouts</summary>
++  <description>
++    <p>XTrackCAD is a CAD (computer-aided design) program for designing model railroad layouts.</p>
++    <p><em>Flatpak not officially supported, yet ;-) ; search for "flatpak" from the faq/home wiki</em></p>
++  </description>
++  <releases>
++    <release version="5.3.1HS1-fp1" date="2026-10-29">
++        <description>
++            <ul>
++                <li>Fixes several issues in 5.3.1GA</li>
++                <li>See https://sourceforge.net/projects/xtrkcad-fork/files/XTrackCad/Version%205.3.1%20HS1/</li>
++            </ul>
++        </description>
++    </release>
++    <release version="5.3.1GA-fp2" date="2026-09-17">
++        <description>
++            <ul>
++                <li>Use Freedesktop version 26.08</li>
++            </ul>
++        </description>
++    </release>
++    <release version="5.3.1GA-fp1" date="2026-01-20">
++        <description>
++            <ul>
++                <li>Use ~/.xtrkcad-fp as working directory</li>
++                <li>For 5.3.1GA changelog, visit https://sourceforge.net/projects/xtrkcad-fork/files/XTrackCad/Version%205.3.1/</li>
++            </ul>
++        </description>
++    </release>
++    <release version="5.3.1GA" date="2025-10-13"/>
++  </releases>
++  <content_rating type="oars-1.1" />
++  <launchable type="desktop-id">io.sourceforge.xtrkcad_fork.xtrkcad.desktop</launchable>
++  <metadata_license>CC0-1.0</metadata_license>
++  <project_license>GPL-3.0</project_license>
++  <url type="bugtracker">https://sourceforge.net/p/xtrkcad-fork/bugs/</url>
++  <url type="homepage">https://sourceforge.net/p/xtrkcad-fork/</url>
++  <url type="contact">https://groups.io/g/xtrackcad</url>
++  <url type="faq">https://sourceforge.net/p/xtrkcad-fork/wiki/Home/</url>
++  <url type="contribute">https://sourceforge.net/p/xtrkcad-fork/wiki/Contribute/</url>
++  <url type="vcs-browser">https://sourceforge.net/p/xtrkcad-fork/xtrkcad/ci/default/tree/</url>
++  <screenshots>
++    <screenshot type="default">
++      <image>https://cytranet-dal.dl.sourceforge.net/project/xtrkcad-fork/Images/wiki/screenshots/port_dinllean_screenshot.png?viasf=1</image>
++      <caption>Example port_dinllean.xtc</caption>
++    </screenshot>
++  </screenshots>
++  <developer id="io.sourceforge.xtrkcad_fork.xtrkcad">
++    <name>xtrkcad developers</name>
++  </developer>
++</component>
