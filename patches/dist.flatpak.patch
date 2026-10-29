@@ -1,0 +1,2046 @@
+diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference xtrkcad-fork-xtrkcad/distribution/flatpak/buildFlatpak.sh new-fork-xtrkcad/distribution/flatpak/buildFlatpak.sh
+--- xtrkcad-fork-xtrkcad/distribution/flatpak/buildFlatpak.sh	2026-10-15 13:20:18.446028854 -0400
++++ new-fork-xtrkcad/distribution/flatpak/buildFlatpak.sh	2026-10-13 14:55:27.144239231 -0400
+@@ -4,7 +4,10 @@
+ 
+ # WARNING: changing this to yes will leave files/directories present in the source
+ #          tree which are not currently part of the .hgignore file
+-DEBUG=no
++DEBUG=yes
++
++export PS4='+ \[\e[0;33m\](\u \t) ${BASH_SOURCE##*/}@${LINENO}: \[\e[0m\]'
++set -x
+ 
+ #####################################################################
+ #   U S A G E
+@@ -166,8 +169,9 @@
+ #   M A K E   S O U R C E   T A R B A L L
+ #####################################################################
+ make_source_tar() {
+-  tar -czf ../$WORKING_FILE --exclude=.hg .
+-  mv ../$WORKING_FILE .
++    tar -czvf ../$WORKING_FILE --exclude=.hg .
++    mv ../$WORKING_FILE . || exit 1
++    ls -l $WORKING_FILE
+ }
+ 
+ #####################################################################
+@@ -215,20 +219,27 @@
+ EOF
+   cat <<EOF >$FP_MANIFEST
+ id: $FP_XTRKCAD_ORG
+-runtime: org.gnome.Platform
+-runtime-version: '48'
+-sdk: org.gnome.Sdk
+-command: /app/bin/run-xtrkcad.sh
++runtime: org.freedesktop.Platform
++runtime-version: '26.08'
++sdk: org.freedesktop.Sdk
++command: run-xtrkcad.sh
++finish-args:
++  - --socket=x11
++  - --socket=cups
++  - --socket=pulseaudio
++  - --share=ipc
++  - --device=dri
++  - --filesystem=home
++
+ modules:
+   - name: libzip
+-    buildsystem: cmake
++    buildsystem: cmake-ninja
+     config-opts:
+       - -DBUILD_DOC=OFF
+       - -DBUILD_EXAMPLES=OFF
+       - -DBUILD_REGRESS=OFF
+       - -DBUILD_TOOLS=OFF
+       - -DBUILD_OSSFUZZ=OFF
+-      - -DCMAKE_INSTALL_PREFIX=/app/libzip
+       - -DBUILD_SHARED_LIBS=OFF
+       - -DENABLE_COMMONCRYPTO=OFF
+       - -DENABLE_GNUTLS=OFF
+@@ -238,63 +249,53 @@
+       - -DENABLE_BZIP2=OFF
+       - -DENABLE_LZMA=OFF
+       - -DENABLE_ZSTD=OFF
++      - -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+     sources:
+       - type: archive
+-        url: https://github.com/nih-at/libzip/releases/download/v1.8.0/libzip-1.8.0.tar.gz
+-        sha256: 30ee55868c0a698d3c600492f2bea4eb62c53849bcf696d21af5eb65f3f3839e
+-    post-install:
+-      - mkdir -p /app/include
+-      - mkdir -p /app/lib
+-      - ln -s /app/libzip/include/* /app/include
+-      - ln -s /app/libzip/lib/libzip.a /app/lib
++        url: https://github.com/nih-at/libzip/releases/download/v1.11.4/libzip-1.11.4.tar.gz
++        sha256: 82e9f2f2421f9d7c2466bbc3173cd09595a88ea37db0d559a9d0a2dc60dc722e
++    cleanup:
++      - '*'
++
+   - name: mxml
+-    buildsystem: simple
+-    build-commands:
+-      - ./configure --exec_prefix=/app/mxml --prefix=/app/mxml
+-      - make
+-      - make install
+-      - mkdir -p /app/include
+-      - mkdir -p /app/lib
+-      - ln -s /app/mxml/include/* /app/include
+-      - ln -s /app/mxml/lib/* /app/lib
+-    sources:
+-      - type: archive
+-# v4 changes names from mxml to mxml4 whch we haven't migrated yet
+-        url: https://github.com/michaelrsweet/mxml/archive/refs/tags/v3.3.1.tar.gz
+-        sha256: 59eba16ce43765f2e2a6cf4873a58d317be801f1e929647d85da9f171e41e9ac
+-  - name: gtk2
+     buildsystem: autotools
+-    build-options:
+-      env:
+-        CFLAGS: "-Wno-incompatible-pointer-types -Wno-implicit-int"
+-        CXXFLAGS: "-Wno-incompatible-pointer-types -Wno-implicit-int"
++    config-opts:
++      - --prefix=/app
+     sources:
+       - type: archive
+-        url: "https://gitlab.gnome.org/GNOME/gtk/-/archive/2.24.33/gtk-2.24.33.tar.gz"
+-        sha256: dedfaf04952434c5e3e1ce4de373ac7474d12da2d99b0afc947ef1983df64601
+-    config-opts:
+-      - "--prefix=${XTRKCADPREFIX}"
+-      - "--disable-introspection"
+-      - "--enable-shared"
+-      - "--disable-static"
+-      - "--enable-gtk-doc-html=no"
+-#    make-args:
+-#      - "V=1"
+-#      - "-j 1"
+-  - name: inkscape
++        url: https://github.com/michaelrsweet/mxml/releases/download/v3.3.1/mxml-3.3.1.tar.gz
++        sha256: 0c663ed1fe393b5619f80101798202eea43534abd7c8aff389022fd8c1dacc32
++    cleanup:
++      - '*'
++
++  - name: gtk2-shared-modules-sources
+     buildsystem: simple
+     sources:
+-      - type: file
+-        path: $XDG_DATA/$INKSCAPE_TAR
+-        dest-filename: $INKSCAPE_TAR
+-    build-options:
+-      env:
+-        PKG_CONFIG_PATH: "/app/lib/pkgconfig:/usr/lib/pkgconfig"
+-        LD_LIBRARY_PATH: "/app/lib:/usr/lib:/usr/lib/x86_64-linux-gnu"
++      - type: git
++        url: "https://github.com/flathub/shared-modules.git"
++        commit: "cb9ec602a1ece1c76d5a4f8aa1d87c4a6bf99c3e"
++    build-commands:
++      - |
++        pwd
++        ls
++        true
++
++  - shared-modules/gtk2/gtk2.json
++
++  - name: fake-inkscape
++    buildsystem: simple
++    sources:
++      - type: script
++        dest-filename: inkscape
++        commands:
++          - |
++            rsvg-convert "\$@"
+     build-commands:
+-      - tar -xzf $INKSCAPE_TAR --skip-old-files
+-      - mkdir -p /app/inkscape
+-      - cp -pr --update app/* /app/inkscape 2>&1
++      - install -Dm755 inkscape /app/bin/inkscape
++    cleanup:
++      - '*'
++
++#
+ #  - name: debug
+ #    buildsystem: simple
+ #    no-make-install: true
+@@ -302,6 +303,7 @@
+ #      - echo "D E B U G   B E G I N"
+ #      - find /app -type f -o -type l
+ #      - echo "D E B U G   E N D"
++
+   - name: xtrkcad
+     buildsystem: simple
+     sources:
+@@ -440,7 +442,8 @@
+         cd ../build
+         XTRKCAD_CMAKE_DEBUG="-DCMAKE_TARGET_PROPERTIES=1 -DCMAKE_FIND_DEBUG_MODE=1"
+         XTRKCAD_CMAKE_DEBUG=""
+-        cmake -G Ninja \$XTRKCAD_CMAKE_DEBUG -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=$XTRKCADPREFIX -DCMAKE_C_FLAGS="-I/app/include -Wpointer-sign" ../src
++        #cmake -G Ninja \$XTRKCAD_CMAKE_DEBUG -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=$XTRKCADPREFIX -DCMAKE_C_FLAGS="-I/app/include -Wpointer-sign" ../src
++        cmake -G "Unix Makefiles" \$XTRKCAD_CMAKE_DEBUG -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=$XTRKCADPREFIX -DCMAKE_C_FLAGS="-I/app/include -Wpointer-sign" ../src
+         mkdir -p /app/share/icons/hicolor/64x64/apps/
+         if false; then
+           # debug: flatpak ps
+@@ -455,8 +458,10 @@
+           echo "# sorry no editor in the Sdk"
+           sleep 3600
+         else
+-          ninja -v
+-          ninja -v install
++          #ninja -v
++          #ninja -v install
++          make -v
++          make -v install
+           cp $XTRKCADPREFIX/${XTRKCADSHARE}/pixmaps/xtrkcad.png /app/share/icons/hicolor/64x64/apps/${FP_XTRKCAD_ORG}.png
+           #cp /run/build/xtrkcad/src/app/lib/xtrkcad.png /app/share/icons/hicolor/64x64/apps/${FP_XTRKCAD_ORG}.png
+           cd ..
+@@ -475,36 +480,6 @@
+           rm -f /app/bin/gtk*
+           rm -rf /app/share/aclocal
+         fi
+-finish-args:
+-  - --socket=x11
+-  - --socket=wayland
+-  - --socket=session-bus
+-  - --socket=cups
+-  - --socket=pulseaudio
+-  - --share=ipc
+-  - --device=all
+-  - --filesystem=~/.xtrkcad${BETA_SUFFIX}:create
+-  - --filesystem=~/.themes
+-  - --filesystem=~/.icons
+-  - --filesystem=~/.config:create
+-  - --filesystem=~/.gtk-bookmarks
+-  - --filesystem=~/.local/share:create
+-  # if home directory access not allowed, define some common ones for plans
+-  #- --filesystem=~/.local/${XTRKCADSHARE}:create
+-  #- --filesystem=~/Documents:create
+-  #- --filesystem=~/xtrkcad:create
+-  #- --filesystem=~/XtrackCAD:create
+-  - --filesystem=~/Downloads
+-  - --filesystem=xdg-data/applications
+-  - --filesystem=xdg-data/icons
+-  # home directory access
+-  - --filesystem=home
+-  # full system access
+-  #- --filesystem=host
+-  - --talk-name=org.gnome.portal.*
+-  - --talk-name=org.gnome.*
+-  - --talk-name=org.gnome.portal.*
+-  - --system-talk-name=org.gnome.*
+ EOF
+ }
+ 
+@@ -542,6 +517,6 @@
+ sleep 3
+ flush_cache
+ make_source_tar
+-get_extract_inkscape
++#get_extract_inkscape
+ build_manifest
+ build_flatpak
+diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference xtrkcad-fork-xtrkcad/distribution/flatpak/CMakeLists.txt new-fork-xtrkcad/distribution/flatpak/CMakeLists.txt
+--- xtrkcad-fork-xtrkcad/distribution/flatpak/CMakeLists.txt	2026-10-15 13:20:18.445404139 -0400
++++ new-fork-xtrkcad/distribution/flatpak/CMakeLists.txt	2026-10-13 17:46:57.356488077 -0400
+@@ -1,24 +1,127 @@
++# pass -DFLATPAK_STATE_DIR=/path/to/.flatpak-builder-xtrkcad/ (created if not present)
++# necessary if source and build directory not on same file system
++if (NOT DEFINED FLATPAK_STATE_DIR)
++    # holds cache of build artifacts so everything doesn't have to be rebuilt
++    set(FLATPAK_STATE_DIR $ENV{HOME}/.flatpak-builder-xtrkcad/)
++endif()
++set(FLATPAK_REPO "temp.repo")
++set(FLATPAK_WORK_DIR "temp.work")
+ set(FLATPAK_BUILD_SCRIPT "${CMAKE_SOURCE_DIR}/distribution/flatpak/buildFlatpak.sh")
+-set(FLATPAK_FILE ${CMAKE_BINARY_DIR}/xtrkcad-${XTRKCAD_VERSION}.flatpak)
++string(TIMESTAMP XTRKCAD_BUILD_TIMESTAMP "%a %b %d %H:%M:%S UTC %Y" UTC)
++string(TIMESTAMP XTRKCAD_BUILD_DATE "%Y-%m-%d" UTC)
++string(REGEX REPLACE "^.*/" "" XTRKCAD_BASE_NAME ${XTRKCAD_SHARE_INSTALL_DIR})
++string(REGEX REPLACE ${XTRKCAD_PACKAGE} "" XTRKCAD_SUFFIX_NAME ${XTRKCAD_BASE_NAME})
++execute_process(COMMAND ${Hg_EXECUTABLE} "log" "-r" "." "-T" "'{shortest(node,12)}'" WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" OUTPUT_VARIABLE XTRKCAD_SRC_CHANGESET)
++string(REGEX MATCH "[0-9a-f]+" XTRKCAD_SRC_CHANGESET "${XTRKCAD_SRC_CHANGESET}")
++set(FLATPAK_FILE ${CMAKE_BINARY_DIR}/xtrkcad-${XTRKCAD_VERSION}-${XTRKCAD_SRC_CHANGESET}.${CMAKE_SYSTEM_PROCESSOR}.flatpak)
++string(REGEX REPLACE "^.*/" "" FLATPAK_BASE_FILE ${FLATPAK_FILE})
+ 
++# source .in file prefixes
++set(_XTRK_DESKTOP_SRC_FILE "desktop")
++set(_XTRK_META_SRC_FILE "metainfo.xml")
++set(_XTRK_MANIFEST_SRC_FILE "manifest.yaml")
++
++# flatpak domain build from flathub
++set(FLATPAK_DOMAIN "io.sourceforge.xtrkcad_fork")
++
++# flatpak domain local build
++#set(FLATPAK_DOMAIN "org.xtrkcad")
++
++set(_XTRK_DESKTOP_FILE "xtrkcad.desktop")
++set(_XTRK_META_FILE "xtrkcad.metainfo.xml")
++set(_XTRK_MANIFEST_FILE "xtrkcad.manifest.yaml")
++
++# desktop.in
++string(CONCAT _XTRK_DESKTOP_IN_FILE
++       ${CMAKE_CURRENT_SOURCE_DIR}
++       "/"
++       ${_XTRK_DESKTOP_SRC_FILE}
++       ".in"
++      )
++
++#######################################################################
++#   Note that some files in the source are modified based on the
++#   .in file in order that flathub builds require less patching
++#   since these files (the non .in ones) are used in the manifest.
++#
++#   When a cmake is performed and flatpak tools are available, these
++#   will be modified for your checking in pleasure.
++#######################################################################
++
++# updates source on purpose for flathub builds
++configure_file(${_XTRK_DESKTOP_IN_FILE} "${CMAKE_CURRENT_SOURCE_DIR}/${_XTRK_DESKTOP_FILE}")
++
++# metainfo.xml.in
++string(CONCAT _XTRK_META_IN_FILE
++       ${CMAKE_CURRENT_SOURCE_DIR}
++       "/"
++       ${_XTRK_META_SRC_FILE}
++       ".in"
++      )
++
++# updates source on purpose for flathub builds; the date needs manual update before source archiving
++configure_file(${_XTRK_META_IN_FILE} "${CMAKE_SOURCE_DIR}/app/lib/${_XTRK_META_FILE}")
++
++# manifest.yaml.in
++string(CONCAT _XTRK_MANIFEST_IN_FILE
++       ${CMAKE_CURRENT_SOURCE_DIR}
++       "/"
++       ${_XTRK_MANIFEST_SRC_FILE}
++       ".in"
++      )
++
++# build manifest file to use for building in sandbox
++# note that the manifest file is not modified in the source tree as it's
++# maintained in the git repo https://github.com/flathub/io.sourceforge.xtrkcad_fork.xtrkcad
++configure_file(${_XTRK_MANIFEST_IN_FILE} "${_XTRK_MANIFEST_FILE}" @ONLY)
++
++# needed for gtk2
++file(COPY
++    ${CMAKE_CURRENT_SOURCE_DIR}/shared-modules
++    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
++)
++
++# the flatpak commands to make a local flatpak (official flatpak builds
++# must be done via PR in its git repo)
+ add_custom_command(
+     OUTPUT ${FLATPAK_FILE}
+-    COMMAND ${FLATPAK_BUILD_SCRIPT} ${CMAKE_BINARY_DIR}
+-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
++    COMMAND ${Flatpak_EXECUTABLE}
++            remote-add --if-not-exists --user
++            flathub https://flathub.org/repo/flathub.flatpakrepo
++    COMMAND ${Flatpak_builder_EXECUTABLE}
++            --state-dir=${FLATPAK_STATE_DIR}
++            --force-clean --user --install --repo=${FLATPAK_REPO}
++            --install-deps-from=flathub
++            ${FLATPAK_WORK_DIR} ${_XTRK_MANIFEST_FILE}
++    COMMAND rm -rf ${FLATPAK_WORK_DIR}
++    COMMAND ${Flatpak_EXECUTABLE} build-bundle
++            ${FLATPAK_REPO}
++            ${FLATPAK_FILE}
++            ${FLATPAK_DOMAIN}.${XTRKCAD_BASE_NAME}
++    COMMAND rm -rf ${FLATPAK_REPO}
+     COMMENT "Re-compiling xtrkcad within flatpak Sdk; this could take a while ..."
+-    DEPENDS ${FLATPAK_BUILD_SCRIPT}
++    DEPENDS ${_XTRK_MANIFEST_FILE} ${_XTRK_DESKTOP_FILE} ${CMAKE_SOURCE_DIR}/app/lib/${_XTRK_META_FILE}
+ )
+ 
+ # makes for an easy target: "make flatpak" or "ninja flatpak"
+ add_custom_command(
+     OUTPUT flatpak
+-    COMMAND ${FLATPAK_BUILD_SCRIPT} ${CMAKE_BINARY_DIR}
+-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+-    COMMENT "Re-compiling xtrkcad within flatpak Sdk; this could take a while ..."
+-    DEPENDS ${FLATPAK_BUILD_SCRIPT}
++    DEPENDS ${FLATPAK_FILE}
+ )
+ 
+ add_custom_target(flatpak
+     DEPENDS ${FLATPAK_FILE}
+-    COMMENT "Generating xtrkcad-${XTRKCAD_VERSION}.flatpak"
++    COMMENT "Generating ${FLATPAK_BASE_FILE}"
+ )
++
++if( DEFINED DEBUG_FLATPAK )
++function(print_all_variables)
++    get_cmake_property(_vars VARIABLES)
++    list(SORT _vars)
++    foreach(_var IN LISTS _vars)
++        message(STATUS "${_var}= ${${_var}}")
++    endforeach()
++endfunction()
++
++print_all_variables()
++endif()
+diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference xtrkcad-fork-xtrkcad/distribution/flatpak/common_source.sh new-fork-xtrkcad/distribution/flatpak/common_source.sh
+--- xtrkcad-fork-xtrkcad/distribution/flatpak/common_source.sh	1969-12-31 19:00:00.000000000 -0500
++++ new-fork-xtrkcad/distribution/flatpak/common_source.sh	2026-10-15 12:35:56.079906517 -0400
+@@ -0,0 +1,4 @@
++if [ -n "$XDG_CACHE_HOME" ]; then
++    cp -pr /app/share/xtrkcad/* ${XDG_CACHE_HOME}
++fi
++export XTRKCADLIB=${XDG_CACHE_HOME}
+diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference xtrkcad-fork-xtrkcad/distribution/flatpak/desktop.in new-fork-xtrkcad/distribution/flatpak/desktop.in
+--- xtrkcad-fork-xtrkcad/distribution/flatpak/desktop.in	1969-12-31 19:00:00.000000000 -0500
++++ new-fork-xtrkcad/distribution/flatpak/desktop.in	2026-10-13 17:19:43.018350591 -0400
+@@ -0,0 +1,8 @@
++[Desktop Entry]
++Name=XTrackCAD
++Comment=Design model railroad layouts
++Exec=run-xtrkcad.sh
++Icon=@FLATPAK_DOMAIN@.@XTRKCAD_BASE_NAME@
++Terminal=false
++Type=Application
++Categories=Graphics
+diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference xtrkcad-fork-xtrkcad/distribution/flatpak/manifest.yaml.in new-fork-xtrkcad/distribution/flatpak/manifest.yaml.in
+--- xtrkcad-fork-xtrkcad/distribution/flatpak/manifest.yaml.in	1969-12-31 19:00:00.000000000 -0500
++++ new-fork-xtrkcad/distribution/flatpak/manifest.yaml.in	2026-10-15 13:15:21.658887300 -0400
+@@ -0,0 +1,74 @@
++id: @FLATPAK_DOMAIN@.@XTRKCAD_BASE_NAME@
++runtime: org.freedesktop.Platform
++runtime-version: '26.08'
++sdk: org.freedesktop.Sdk
++command: run-xtrkcad.sh
++
++finish-args:
++  - --socket=x11
++  - --socket=cups
++  - --socket=pulseaudio
++  - --share=ipc
++  - --device=dri
++  - --filesystem=home
++
++modules:
++  - name: libzip
++    buildsystem: cmake-ninja
++    config-opts:
++      - -DBUILD_DOC=OFF
++      - -DBUILD_EXAMPLES=OFF
++      - -DBUILD_REGRESS=OFF
++      - -DBUILD_TOOLS=OFF
++      - -DBUILD_OSSFUZZ=OFF
++      - -DBUILD_SHARED_LIBS=OFF
++      - -DENABLE_COMMONCRYPTO=OFF
++      - -DENABLE_GNUTLS=OFF
++      - -DENABLE_MBEDTLS=OFF
++      - -DENABLE_OPENSSL=OFF
++      - -DENABLE_WINDOWS_CRYPTO=OFF
++      - -DENABLE_BZIP2=OFF
++      - -DENABLE_LZMA=OFF
++      - -DENABLE_ZSTD=OFF
++      - -DCMAKE_POLICY_VERSION_MINIMUM=3.5
++    sources:
++      - type: archive
++        url: https://github.com/nih-at/libzip/releases/download/v1.11.4/libzip-1.11.4.tar.gz
++        sha256: 82e9f2f2421f9d7c2466bbc3173cd09595a88ea37db0d559a9d0a2dc60dc722e
++    cleanup:
++      - '*'
++
++  - shared-modules/gtk2/gtk2.json
++
++  - name: mxml
++    buildsystem: autotools
++    config-opts:
++      - --prefix=/app
++    sources:
++      - type: archive
++        url: https://github.com/michaelrsweet/mxml/releases/download/v3.3.1/mxml-3.3.1.tar.gz
++        sha256: 0c663ed1fe393b5619f80101798202eea43534abd7c8aff389022fd8c1dacc32
++    cleanup:
++      - '*'
++
++  - name: fake-inkscape
++    buildsystem: simple
++    sources:
++      - type: script
++        dest-filename: inkscape
++        commands:
++          - |
++            rsvg-convert "$@"
++    build-commands:
++      - install -Dm755 inkscape /app/bin/inkscape
++    cleanup:
++      - '*'
++
++  - name: xtrkcad
++    buildsystem: cmake-ninja
++    sources:
++      - type: dir
++        path: @CMAKE_SOURCE_DIR@
++    config-opts:
++      - -DXTRKCAD_BUILD_FLATPAK=1
++    builddir: true
+diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference xtrkcad-fork-xtrkcad/distribution/flatpak/metainfo.xml.in new-fork-xtrkcad/distribution/flatpak/metainfo.xml.in
+--- xtrkcad-fork-xtrkcad/distribution/flatpak/metainfo.xml.in	1969-12-31 19:00:00.000000000 -0500
++++ new-fork-xtrkcad/distribution/flatpak/metainfo.xml.in	2026-10-15 13:36:53.368422266 -0400
+@@ -0,0 +1,54 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<component type="desktop-application">
++  <id>io.sourceforge.xtrkcad_fork.xtrkcad</id>
++  <name>XTrackCAD@XTRKCAD_SUFFIX_NAME@</name>
++  <summary>Design model railroad layouts</summary>
++  <description>
++    <p>XTrackCAD is a CAD (computer-aided design) program for designing model railroad layouts.</p>
++  </description>
++  <releases>
++    <release version="@XTRKCAD_VERSION@" date="2026-10-15">
++        <description>
++            <ul>
++                <li>Fixes</li>
++                <li>For full changelog, visit https://sourceforge.net/projects/xtrkcad-fork/files/XTrackCad/Version%205.3.1/</li>
++            </ul>
++        </description>
++    </release>
++    <release version="5.3.1GA-fp2" date="2026-09-17">
++        <description>
++            <ul>
++                <li>Use Freedesktop version 26.08</li>
++            </ul>
++        </description>
++    </release>
++    <release version="5.3.1GA-fp1" date="2026-01-20">
++        <description>
++            <ul>
++                <li>Use ~/.xtrkcad-fp as working directory</li>
++                <li>For 5.3.1GA changelog, visit https://sourceforge.net/projects/xtrkcad-fork/files/XTrackCad/Version%205.3.1/</li>
++            </ul>
++        </description>
++    </release>
++    <release version="5.3.1GA" date="2025-10-13"/>
++  </releases>
++  <content_rating type="oars-1.1" />
++  <launchable type="desktop-id">io.sourceforge.xtrkcad_fork.xtrkcad.desktop</launchable>
++  <metadata_license>CC0-1.0</metadata_license>
++  <project_license>GPL-3.0</project_license>
++  <url type="bugtracker">https://sourceforge.net/p/xtrkcad-fork/bugs/</url>
++  <url type="homepage">https://sourceforge.net/p/xtrkcad-fork/</url>
++  <url type="contact">https://groups.io/g/xtrackcad</url>
++  <url type="faq">https://sourceforge.net/p/xtrkcad-fork/wiki/Home/</url>
++  <url type="contribute">https://sourceforge.net/p/xtrkcad-fork/wiki/Contribute/</url>
++  <url type="vcs-browser">https://sourceforge.net/p/xtrkcad-fork/xtrkcad/ci/default/tree/</url>
++  <screenshots>
++    <screenshot type="default">
++      <image>https://cytranet-dal.dl.sourceforge.net/project/xtrkcad-fork/Images/wiki/screenshots/port_dinllean_screenshot.png?viasf=1</image>
++      <caption>Example port_dinllean.xtc</caption>
++    </screenshot>
++  </screenshots>
++  <developer id="io.sourceforge.xtrkcad_fork.xtrkcad">
++    <name>xtrkcad developers</name>
++  </developer>
++</component>
+diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference xtrkcad-fork-xtrkcad/distribution/flatpak/run-xtrkcad.sh new-fork-xtrkcad/distribution/flatpak/run-xtrkcad.sh
+--- xtrkcad-fork-xtrkcad/distribution/flatpak/run-xtrkcad.sh	1969-12-31 19:00:00.000000000 -0500
++++ new-fork-xtrkcad/distribution/flatpak/run-xtrkcad.sh	2026-10-15 12:38:37.925948976 -0400
+@@ -0,0 +1,3 @@
++#!/usr/bin/env sh
++source $(dirname $0)/common_source.sh
++exec /app/bin/xtrkcad "$@"
+diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference xtrkcad-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/arc-gtk2-theme-Replace-Inkscape-dependency-with-rsvg-convert.patch new-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/arc-gtk2-theme-Replace-Inkscape-dependency-with-rsvg-convert.patch
+--- xtrkcad-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/arc-gtk2-theme-Replace-Inkscape-dependency-with-rsvg-convert.patch	1969-12-31 19:00:00.000000000 -0500
++++ new-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/arc-gtk2-theme-Replace-Inkscape-dependency-with-rsvg-convert.patch	2026-10-13 17:06:42.579545325 -0400
+@@ -0,0 +1,180 @@
++From d5e0034183564df5fec8e4dde1705116c7b38021 Mon Sep 17 00:00:00 2001
++From: Patrick Griffis <tingping@tingping.se>
++Date: Sat, 16 May 2020 18:00:36 -0700
++Subject: [PATCH] Replace Inkscape dependency with rsvg-convert
++
++rsvg-convert is a *much* smaller dependency that all systems with
++a functioning GTK installation should have easy access to.
++---
++ common/gtk-2.0/Makefile.am     |  6 +-----
++ common/gtk-2.0/render-asset.sh | 16 ++++++++--------
++ common/gtk-3.0/common.am       | 12 ++----------
++ common/xfwm4/Makefile.am       |  6 +-----
++ common/xfwm4/render-asset.sh   | 16 ++++++++--------
++ configure.ac                   |  8 ++------
++ 6 files changed, 22 insertions(+), 42 deletions(-)
++
++diff --git a/common/gtk-2.0/Makefile.am b/common/gtk-2.0/Makefile.am
++index 010823a..873013a 100644
++--- a/common/gtk-2.0/Makefile.am
+++++ b/common/gtk-2.0/Makefile.am
++@@ -35,11 +35,7 @@ $(light): $(srcdir)/light/assets.svg | light/assets
++ $(dark): $(srcdir)/dark/assets.svg | dark/assets
++ 
++ $(light) $(dark):
++-if INKSCAPE_1_0_OR_NEWER
++-	$(INKSCAPE) --export-id-only --export-filename="$@" --export-id="$(basename $(notdir $@))" --export-dpi=$(if $(filter $(OPTION_GTK2_HIDPI),true),192,96) "$<" >/dev/null
++-else !INKSCAPE_1_0_OR_NEWER
++-	$(INKSCAPE) --export-id-only --export-png="$@" --export-id="$(basename $(notdir $@))" --export-dpi=$(if $(filter $(OPTION_GTK2_HIDPI),true),192,96) "$<" >/dev/null
++-endif
+++	$(RSVG_CONVERT) --format=png --output="$@" --export-id="$(basename $(notdir $@))" --dpi-x=$(if $(filter $(OPTION_GTK2_HIDPI),true),192,96) --dpi-y=$(if $(filter $(OPTION_GTK2_HIDPI),true),192,96) "$<" >/dev/null
++ 	$(OPTIPNG) -o7 --quiet "$@"
++ 
++ menubar-toolbar/%-dark.png: dark/assets/%.png | menubar-toolbar
++diff --git a/common/gtk-2.0/render-asset.sh b/common/gtk-2.0/render-asset.sh
++index 6685414..f6198af 100755
++--- a/common/gtk-2.0/render-asset.sh
+++++ b/common/gtk-2.0/render-asset.sh
++@@ -1,7 +1,7 @@
++ #!/bin/bash
++ set -ueo pipefail
++ 
++-INKSCAPE="$(which inkscape)"
+++RSVG_CONVERT="$(which rsvg-convert)"
++ OPTIPNG="$(which optipng)"
++ 
++ ASSETS_DIR="$1"
++@@ -14,9 +14,9 @@ if [[ -f "${result_file}" ]] ; then
++ 	echo "${result_file} already exists."
++ else
++ 	echo "Rendering '${result_file}'"
++-	"$INKSCAPE" --export-id="$i" \
++-				--export-id-only \
++-				--export-png="${result_file}" "$SRC_FILE" >/dev/null \
+++	"$RSVG_CONVERT" --export-id="$i" \
+++                        --format=png
+++                        --output="${result_file}" "$SRC_FILE" >/dev/null \
++ 	&& "$OPTIPNG" -o7 --quiet "${result_file}"
++ fi
++ 
++@@ -26,10 +26,10 @@ if [[ "$OPTION_GTK2_HIDPI" == "true" ]]; then
++ 		echo "${result_file_hidpi} already exists."
++ 	else
++ 		echo "Rendering '${result_file_hidpi}'"
++-		"$INKSCAPE" --export-id="$i" \
++-					--export-id-only \
++-					--export-dpi=192 \
++-					--export-png="${result_file_hidpi}" "$SRC_FILE" >/dev/null \
+++		"$RSVG_CONVERT" --export-id="$i" \
+++				--dpi-x=192 --dpi-y=192 \
+++				--format=png
+++			        --output="${result_file_hidpi}" "$SRC_FILE" >/dev/null \
++ 		&& "$OPTIPNG" -o7 --quiet "${result_file_hidpi}"
++ 	fi
++ fi
++diff --git a/common/gtk-3.0/common.am b/common/gtk-3.0/common.am
++index a93d01d..9e4b102 100644
++--- a/common/gtk-3.0/common.am
+++++ b/common/gtk-3.0/common.am
++@@ -14,19 +14,11 @@ clean:
++ 	rm -rf assets/ light/ dark/ darker/ lighter/
++ 
++ $(normal): $(srcdir)/assets.svg | assets
++-if INKSCAPE_1_0_OR_NEWER
++-	$(INKSCAPE) --export-id-only --export-filename="$@" --export-id="$(basename $(notdir $@))" --export-dpi=96 "$<" >/dev/null
++-else !INKSCAPE_1_0_OR_NEWER
++-	$(INKSCAPE) --export-id-only --export-png="$@" --export-id="$(basename $(notdir $@))" --export-dpi=96 "$<" >/dev/null
++-endif
+++	$(RSVG_CONVERT) --format=png --output="$@" --export-id="$(basename $(notdir $@))" --dpi-y=96 --dpi-x=96 "$<" >/dev/null
++ 	$(OPTIPNG) -o7 --quiet "$@"
++ 
++ $(hidpi): $(srcdir)/assets.svg | assets
++-if INKSCAPE_1_0_OR_NEWER
++-	$(INKSCAPE) --export-id-only --export-filename="$@" --export-id="$(patsubst %@2,%,$(basename $(notdir $@)))" --export-dpi=192 "$<" >/dev/null
++-else !INKSCAPE_1_0_OR_NEWER
++-	$(INKSCAPE) --export-id-only --export-png="$@" --export-id="$(patsubst %@2,%,$(basename $(notdir $@)))" --export-dpi=192 "$<" >/dev/null
++-endif
+++	$(RSVG_CONVERT) --format=png --output="$@" --export-id="$(patsubst %@2,%,$(basename $(notdir $@)))" --dpi-y=192 --dpi-x=192 "$<" >/dev/null
++ 	$(OPTIPNG) -o7 --quiet "$@"
++ 
++ .PHONY: normal hidpi clean
++diff --git a/common/xfwm4/Makefile.am b/common/xfwm4/Makefile.am
++index e5fbdc5..1f21183 100644
++--- a/common/xfwm4/Makefile.am
+++++ b/common/xfwm4/Makefile.am
++@@ -17,11 +17,7 @@ $(light): $(srcdir)/light/assets.svg | light/assets
++ $(dark): $(srcdir)/dark/assets.svg | dark/assets
++ 
++ $(light) $(dark):
++-if INKSCAPE_1_0_OR_NEWER
++-	$(INKSCAPE) --export-id-only --export-filename="$@" --export-id="$(basename $(notdir $@))" --export-dpi=$(if $(filter $(OPTION_GTK2_HIDPI),true),192,96) "$<" >/dev/null
++-else !INKSCAPE_1_0_OR_NEWER
++-	$(INKSCAPE) --export-id-only --export-png="$@" --export-id="$(basename $(notdir $@))" --export-dpi=$(if $(filter $(OPTION_GTK2_HIDPI),true),192,96) "$<" >/dev/null
++-endif
+++	$(RSVG_CONVERT) --format=png --output="$@" --export-id="$(basename $(notdir $@))" --dpi-y=$(if $(filter $(OPTION_GTK2_HIDPI),true),192,96) --dpi-x=$(if $(filter $(OPTION_GTK2_HIDPI),true),192,96) "$<" >/dev/null
++ 	$(OPTIPNG) -o7 --quiet "$@"
++ 
++ .PHONY: light dark clean
++diff --git a/common/xfwm4/render-asset.sh b/common/xfwm4/render-asset.sh
++index 6685414..f6198af 100755
++--- a/common/xfwm4/render-asset.sh
+++++ b/common/xfwm4/render-asset.sh
++@@ -1,7 +1,7 @@
++ #!/bin/bash
++ set -ueo pipefail
++ 
++-INKSCAPE="$(which inkscape)"
+++RSVG_CONVERT="$(which rsvg-convert)"
++ OPTIPNG="$(which optipng)"
++ 
++ ASSETS_DIR="$1"
++@@ -14,9 +14,9 @@ if [[ -f "${result_file}" ]] ; then
++ 	echo "${result_file} already exists."
++ else
++ 	echo "Rendering '${result_file}'"
++-	"$INKSCAPE" --export-id="$i" \
++-				--export-id-only \
++-				--export-png="${result_file}" "$SRC_FILE" >/dev/null \
+++	"$RSVG_CONVERT" --export-id="$i" \
+++                        --format=png
+++                        --output="${result_file}" "$SRC_FILE" >/dev/null \
++ 	&& "$OPTIPNG" -o7 --quiet "${result_file}"
++ fi
++ 
++@@ -26,10 +26,10 @@ if [[ "$OPTION_GTK2_HIDPI" == "true" ]]; then
++ 		echo "${result_file_hidpi} already exists."
++ 	else
++ 		echo "Rendering '${result_file_hidpi}'"
++-		"$INKSCAPE" --export-id="$i" \
++-					--export-id-only \
++-					--export-dpi=192 \
++-					--export-png="${result_file_hidpi}" "$SRC_FILE" >/dev/null \
+++		"$RSVG_CONVERT" --export-id="$i" \
+++				--dpi-x=192 --dpi-y=192 \
+++				--format=png
+++			        --output="${result_file_hidpi}" "$SRC_FILE" >/dev/null \
++ 		&& "$OPTIPNG" -o7 --quiet "${result_file_hidpi}"
++ 	fi
++ fi
++diff --git a/configure.ac b/configure.ac
++index f0725f1..1a52cc7 100644
++--- a/configure.ac
+++++ b/configure.ac
++@@ -48,12 +48,8 @@ AM_CONDITIONAL([GNOME_SHELL_3_32_OR_NEWER], [test "0$GNOME_SHELL_VERSMNR" -ge 31
++ AS_IF([test "x$ENABLE_CINNAMON" != xno], [ARC_CINNAMON])
++ 
++ AS_IF([test "x$ENABLE_GTK2" != xno -o "x$ENABLE_GTK3" != xno -o "x$ENABLE_XFWM" != xno], [
++-    AC_PATH_PROG([INKSCAPE], [inkscape])
++-    AS_IF([test "x$ac_cv_path_INKSCAPE" = x], [AC_MSG_ERROR([inkscape not found])])
++-    AS_IF([test "x$ac_cv_path_INKSCAPE" != x],
++-        [INKSCAPE_VERSMJR=`inkscape --version 2> /dev/null | cut -d' ' -f2 | cut -d'.' -f1`]
++-        AM_CONDITIONAL([INKSCAPE_1_0_OR_NEWER], [test "x$INKSCAPE_VERSMJR" = x1])
++-    )
+++    AC_PATH_PROG([RSVG_CONVERT], [rsvg-convert])
+++    AS_IF([test "x$ac_cv_path_RSVG_CONVERT" = x], [AC_MSG_ERROR([rsvg-convert not found])])
++     AC_PATH_PROG([OPTIPNG], [optipng])
++     AS_IF([test "x$ac_cv_path_OPTIPNG" = x], [AC_MSG_ERROR([optipng not found])])
++ ])
++-- 
++2.26.0
++
+diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference xtrkcad-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/gtk2-common-themes.json new-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/gtk2-common-themes.json
+--- xtrkcad-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/gtk2-common-themes.json	1969-12-31 19:00:00.000000000 -0500
++++ new-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/gtk2-common-themes.json	2026-10-13 17:06:42.579545325 -0400
+@@ -0,0 +1,356 @@
++{
++    "name": "gtk2-common-themes",
++    "buildsystem": "simple",
++    "build-commands": [],
++    "modules": [
++        {
++            "name": "sassc",
++            "// NOTE": "This is used by Yaru, Greybird, and Materia",
++            "cleanup": [
++                "*"
++            ],
++            "sources": [
++                {
++                    "type": "archive",
++                    "url": "https://github.com/sass/sassc/archive/3.5.0.tar.gz",
++                    "sha256": "26f54e31924b83dd706bc77df5f8f5553a84d51365f0e3c566df8de027918042"
++                },
++                {
++                    "type": "script",
++                    "commands": [
++                        "autoreconf -si"
++                    ]
++                }
++            ],
++            "modules": [
++                {
++                    "name": "libsass",
++                    "cleanup": [
++                        "*"
++                    ],
++                    "sources": [
++                        {
++                            "type": "archive",
++                            "url": "https://github.com/sass/libsass/archive/3.5.4.tar.gz",
++                            "sha256": "5f61cbcddaf8e6ef7a725fcfa5d05297becd7843960f245197ebb655ff868770"
++                        },
++                        {
++                            "type": "script",
++                            "commands": [
++                                "autoreconf -si"
++                            ]
++                        }
++                    ]
++                }
++            ]
++        },
++        {
++            "name": "gtk2-murrine-engine",
++            "rm-configure": true,
++            "// NOTE": "Used by Arc and CrosAdapta",
++            "cleanup": [
++                "*.la"
++            ],
++            "sources": [
++                {
++                    "type": "archive",
++                    "url": "https://download.gnome.org/sources/murrine/0.98/murrine-0.98.2.tar.xz",
++                    "sha256": "e9c68ae001b9130d0f9d1b311e8121a94e5c134b82553ba03971088e57d12c89"
++                },
++                {
++                    "type": "patch",
++                    "paths": [
++                        "murrine-engine-fix-crash.patch",
++                        "gtk2-murrine-c99.patch"
++                    ]
++                },
++                {
++                    "type": "script",
++                    "commands": [
++                        "rm config.guess",
++                        "autoreconf -si"
++                    ]
++                }
++            ],
++            "modules": [
++                "../intltool/intltool-0.51.json",
++                "../gtk2/gtk2.json"
++            ]
++        },
++        {
++            "name": "cros-adapta-gtk2-theme",
++            "// NOTE": "This is used by Chrome OS",
++            "buildsystem": "simple",
++            "build-commands": [
++                "install -Dm644 index.theme ${FLATPAK_DEST}/share/themes/CrosAdapta/index.theme",
++                "cp -r gtk-2.0 ${FLATPAK_DEST}/share/themes/CrosAdapta"
++            ],
++            "sources": [
++                {
++                    "type": "git",
++                    "url": "https://chromium.googlesource.com/chromiumos/third_party/cros-adapta",
++                    "commit": "eb6d8c1832b9181926df107faf41a80887fd982c"
++                }
++            ]
++        },
++        {
++            "name": "arc-gtk2-theme",
++            "// NOTE": "This is used by Solus and is popular",
++            "// FIXME": "This has a dependency on inkscape and my patch isn't quite good enough sadly",
++            "disabled": true,
++            "config-opts": [
++                "--disable-gnome-shell",
++                "--disable-cinnamon",
++                "--disable-gtk3",
++                "--disable-metacity",
++                "--disable-xfwm",
++                "--disable-plank",
++                "--disable-openbox",
++                "--disable-unity"
++            ],
++            "sources": [
++                {
++                    "type": "archive",
++                    "url": "https://github.com/jnsh/arc-theme/releases/download/20200513/arc-theme-20200513.tar.xz",
++                    "sha256": "cd268b878d6ad7c81b7acc0f89b66e26ee9a9a92eafb03b792318d51707f1962"
++                },
++                {
++                    "type": "patch",
++                    "path": "arc-gtk2-theme-Replace-Inkscape-dependency-with-rsvg-convert.patch"
++                },
++                {
++                    "type": "shell",
++                    "commands": [
++                        "sed -i 's|\"$srcdir/configure\" $@||' autogen.sh"
++                    ]
++                }
++            ],
++            "modules": [
++                {
++                    "name": "optipng",
++                    "cleanup": [
++                        "*"
++                    ],
++                    "sources": [
++                        {
++                            "type": "archive",
++                            "url": "https://prdownloads.sourceforge.net/optipng/optipng-0.7.7.tar.gz",
++                            "sha256": "4f32f233cef870b3f95d3ad6428bfe4224ef34908f1b42b0badf858216654452"
++                        }
++                    ]
++                }
++            ]
++        },
++        {
++            "name": "breeze-gtk2-theme",
++            "// NOTE": "This is used by KDE by default.",
++            "buildsystem": "simple",
++            "build-commands": [
++                "find breeze-gtk/src -name '*.scss' -print -execdir sed -i 's#\\.\\./assets/#./assets/#' {} \\;",
++                "cd breeze-gtk/src && sed -i 's/@Python3_EXECUTABLE@/python3/g' build_theme.sh.cmake && ./build_theme.sh.cmake -c BreezeLight -t ${FLATPAK_BUILDER_BUILDDIR}/Breeze -r ${FLATPAK_BUILDER_BUILDDIR}/breeze/colors",
++                "mkdir -p ${FLATPAK_DEST}/share/themes/Breeze/",
++                "cp -rv --no-preserve=ownership ${FLATPAK_BUILDER_BUILDDIR}/Breeze/gtk-2.0 ${FLATPAK_DEST}/share/themes/Breeze/",
++                "cp -rv --no-preserve=ownership ${FLATPAK_BUILDER_BUILDDIR}/Breeze/assets ${FLATPAK_DEST}/share/themes/Breeze/"
++            ],
++            "sources": [
++                {
++                    "type": "archive",
++                    "url": "https://download.kde.org/stable/plasma/6.4.4/breeze-gtk-6.4.4.tar.xz",
++                    "sha256": "b353cb1c5c36cc7493cb2d018b7cc5068fa4772345781f81d5f8108cf54b4e3f",
++                    "dest": "breeze-gtk",
++                    "x-checker-data": {
++                        "type": "anitya",
++                        "project-id": 8761,
++                        "stable-only": true,
++                        "url-template": "https://download.kde.org/stable/plasma/$version/breeze-gtk-$version.tar.xz"
++                    }
++                },
++                {
++                    "type": "archive",
++                    "url": "https://download.kde.org/stable/plasma/6.4.4/breeze-6.4.4.tar.xz",
++                    "sha256": "307cfcb5505bd376d959b364f5231cac4a280af938a938ce3a4e3b7a9f71f70d",
++                    "dest": "breeze",
++                    "x-checker-data": {
++                        "type": "anitya",
++                        "project-id": 8761,
++                        "stable-only": true,
++                        "url-template": "https://download.kde.org/stable/plasma/$version/breeze-$version.tar.xz"
++                    }
++                }
++            ],
++            "modules": [
++                {
++                    "name": "python3-cairo",
++                    "cleanup": [
++                        "*"
++                    ],
++                    "buildsystem": "simple",
++                    "build-commands": [
++                        "pip3 install --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=\"${FLATPAK_DEST}\" pycairo"
++                    ],
++                    "sources": [
++                        {
++                            "type": "file",
++                            "url": "https://files.pythonhosted.org/packages/40/d9/412da520de9052b7e80bfc810ec10f5cb3dbfa4aa3e23c2820dc61cdb3d0/pycairo-1.28.0.tar.gz",
++                            "sha256": "26ec5c6126781eb167089a123919f87baa2740da2cca9098be8b3a6b91cc5fbc",
++                            "x-checker-data": {
++                                "type": "pypi",
++                                "name": "pycairo"
++                            }
++                        },
++                        {
++                            "type": "file",
++                            "url": "https://files.pythonhosted.org/packages/18/5d/3bf57dcd21979b887f014ea83c24ae194cfcd12b9e0fda66b957c69d1fca/setuptools-80.9.0.tar.gz",
++                            "sha256": "f36b47402ecde768dbfafc46e8e4207b4360c654f1f3bb84475f0a28628fb19c",
++                            "x-checker-data": {
++                                "type": "pypi",
++                                "name": "setuptools"
++                            }
++                        },
++                        {
++                            "type": "file",
++                            "url": "https://files.pythonhosted.org/packages/8a/98/2d9906746cdc6a6ef809ae6338005b3f21bb568bea3165cfc6a243fdc25c/wheel-0.45.1.tar.gz",
++                            "sha256": "661e1abd9198507b1409a20c02106d9670b2576e916d58f520316666abca6729",
++                            "x-checker-data": {
++                                "type": "pypi",
++                                "name": "wheel"
++                            }
++                        }
++                    ]
++                }
++            ]
++        },
++        {
++            "name": "elementary-gtk2-theme",
++            "// NOTE": "This is used by Elementary OS",
++            "buildsystem": "meson",
++            "cleanup": [
++                "/share/themes/elementary/gtk-3.0",
++                "/share/themes/elementary/plank",
++                "/share/plank",
++                "/share/metainfo"
++            ],
++            "sources": [
++                {
++                    "type": "archive",
++                    "url": "https://github.com/elementary/stylesheet/archive/5.4.2.tar.gz",
++                    "sha256": "3bc37723daf4ce0b7c9ce4c125ef0055affe8d6654981388ec87d4a23a1ae0ec"
++                }
++            ]
++        },
++        {
++            "name": "yaru-gtk2-theme",
++            "// NOTE": "This is used by Ubuntu",
++            "buildsystem": "meson",
++            "config-opts": [
++                "-Dicons=false",
++                "-Dsounds=false",
++                "-Dgnome-shell=false",
++                "-Dsessions=false"
++            ],
++            "cleanup": [
++                "/share/themes/Yaru*/gtk-3.0",
++                "/share/themes/Yaru*/gtk-3.20",
++                "/share/themes/Yaru*/unity"
++            ],
++            "sources": [
++                {
++                    "type": "archive",
++                    "url": "https://github.com/ubuntu/yaru/archive/20.10.1.tar.gz",
++                    "sha256": "9da2605088674edf2694a8215b7344fb5209b308dd8220ea21667a914dc8c55d"
++                }
++            ]
++        },
++        {
++            "name": "greybird-gtk2-theme",
++            "// NOTE": "This is used by many XFCE distros",
++            "buildsystem": "meson",
++            "cleanup": [
++                "/share/themes/Greybird*/xfwm4",
++                "/share/themes/Greybird*/gnome-shell",
++                "/share/themes/Greybird*/gtk-3.0",
++                "/share/themes/Greybird*/metacity-1",
++                "/share/themes/Greybird*/xfce-notify-4.0",
++                "/share/themes/Greybird*/plank",
++                "/share/themes/Greybird*/unity",
++                "/share/themes/Greybird*/*.emerald"
++            ],
++            "sources": [
++                {
++                    "type": "archive",
++                    "url": "https://github.com/shimmerproject/Greybird/archive/v3.22.12.tar.gz",
++                    "sha256": "410804cd5daca33cbc5c7c4a179f3a334ced87f408e515fc5d9c083a04bec4bc"
++                }
++            ]
++        },
++        {
++            "name": "materia-gtk2-theme",
++            "// NOTE": "This is used by Ubuntu Studio",
++            "buildsystem": "meson",
++            "cleanup": [
++                "/share/themes/Materia*/xfwm4",
++                "/share/themes/Materia*/gnome-shell",
++                "/share/themes/Materia*/gtk-3.0",
++                "/share/themes/Materia*/metacity-1",
++                "/share/themes/Materia*/cinnamon",
++                "/share/themes/Materia*/chrome",
++                "/share/themes/Materia*/plank",
++                "/share/themes/Materia*/unity"
++            ],
++            "sources": [
++                {
++                    "type": "git",
++                    "url": "https://github.com/nana-4/materia-theme.git",
++                    "commit": "b36b379c9256b67e5f63a60c6faf6912f1845b66"
++                }
++            ]
++        },
++        {
++            "name": "mint-gtk2-theme",
++            "buildsystem": "simple",
++            "build-commands": [
++                "./generate-themes.py",
++                "find ./usr/share -type d \\( -name cinnamon -o -name gtk-3.0 -o -name gtk-4.0 -o -name metacity-1 -o -name xfce-\\* -o -name xfwm4 \\) -exec rm -rf {} +",
++                "find ./usr/share -type d -empty -delete",
++                "mkdir -p ${FLATPAK_DEST}/share/themes",
++                "cp -a ./usr/share/themes/. ${FLATPAK_DEST}/share/themes"
++            ],
++            "sources": [
++                {
++                    "type": "git",
++                    "url": "https://github.com/linuxmint/mint-themes.git",
++                    "commit": "a5e98184b6b86d469db48f17fad4b845f9eee5d8"
++                }
++            ],
++            "modules": [
++                {
++                    "name": "python3-pysass",
++                    "buildsystem": "simple",
++                    "cleanup": [
++                        "*"
++                    ],
++                    "build-commands": [
++                        "pip3 install --verbose --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"pysass\" --no-build-isolation"
++                    ],
++                    "sources": [
++                        {
++                            "type": "file",
++                            "url": "https://files.pythonhosted.org/packages/79/b4/ab091585eaa77299558e3289ca206846aefc123fb320b5656ab2542c20ad/libsass-0.23.0.tar.gz",
++                            "sha256": "6f209955ede26684e76912caf329f4ccb57e4a043fd77fe0e7348dd9574f1880"
++                        },
++                        {
++                            "type": "file",
++                            "url": "https://files.pythonhosted.org/packages/90/06/fafe78968db294d582e4cfb8d4bcdbdaeeb1f6d1f269c25acdceb51ce11c/pysass-0.1.0-py3-none-any.whl",
++                            "sha256": "b473069cd9d8799366505b4586938ebfeb67d9df8b400bae3200297422530aff"
++                        },
++                        {
++                            "type": "file",
++                            "url": "https://files.pythonhosted.org/packages/db/7d/7f3d619e951c88ed75c6037b246ddcf2d322812ee8ea189be89511721d54/watchdog-6.0.0.tar.gz",
++                            "sha256": "9ddf7c82fda3ae8e24decda1338ede66e1c99883db93711d8fb941eaa2d8c282"
++                        }
++                    ]
++                }
++            ]
++        }
++    ]
++}
+diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference xtrkcad-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/gtk2-fix-crash-in-show-uri.patch new-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/gtk2-fix-crash-in-show-uri.patch
+--- xtrkcad-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/gtk2-fix-crash-in-show-uri.patch	1969-12-31 19:00:00.000000000 -0500
++++ new-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/gtk2-fix-crash-in-show-uri.patch	2026-10-13 17:06:42.579699376 -0400
+@@ -0,0 +1,30 @@
++From 536da7a15c1737bc63c8ecba5ccac40cc2170860 Mon Sep 17 00:00:00 2001
++From: Matthias Clasen <mclasen@redhat.com>
++Date: Mon, 19 Apr 2021 16:39:53 -0400
++Subject: [PATCH] Fix a possible crash in gtk_show_uri
++
++g_file_get_basename can return NULL.
++Deal with it somehow.
++
++Fixes: #3883
++---
++ gdk/x11/gdkapplaunchcontext-x11.c | 3 +++
++ 1 file changed, 3 insertions(+)
++
++diff --git a/gdk/x11/gdkapplaunchcontext-x11.c b/gdk/x11/gdkapplaunchcontext-x11.c
++index 8051229ba5..2341bb2e1f 100644
++--- a/gdk/x11/gdkapplaunchcontext-x11.c
+++++ b/gdk/x11/gdkapplaunchcontext-x11.c
++@@ -45,6 +45,9 @@ get_display_name (GFile     *file,
++   if (name == NULL)
++     {
++       name = g_file_get_basename (file);
+++      if (name == NULL)
+++        name = g_file_get_uri (file);
+++
++       if (!g_utf8_validate (name, -1, NULL))
++         {
++           tmp = name;
++-- 
++GitLab
++
+diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference xtrkcad-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/gtk2-gcc14.patch new-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/gtk2-gcc14.patch
+--- xtrkcad-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/gtk2-gcc14.patch	1969-12-31 19:00:00.000000000 -0500
++++ new-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/gtk2-gcc14.patch	2026-10-13 17:06:42.579745176 -0400
+@@ -0,0 +1,281 @@
++commit 072f06abf713d7536ce2a84a5ac266f585c88d39
++Author: Matthias Clasen <mclasen@redhat.com>
++Date:   Fri Dec 8 17:48:47 2017 -0500
++
++    Fix fallout from g_object_ref change
++
++    g_object_ref now returns the type of the object that was
++    passed. Introduce cast as necessary to avoid warnings due
++    to this.
++
++diff --git a/gtk/gtkcellrendererspin.c b/gtk/gtkcellrendererspin.c
++index 2a3961bf203cbe59..7129d05e3b2c1ae6 100644
++--- a/gtk/gtkcellrendererspin.c
+++++ b/gtk/gtkcellrendererspin.c
++@@ -207,7 +207,8 @@ gtk_cell_renderer_spin_set_property (GObject      *object,
++ 	}
++ 
++       if (obj)
++-	priv->adjustment = g_object_ref_sink (obj);
+++	priv->adjustment = GTK_ADJUSTMENT (g_object_ref_sink (obj));
+++
++       break;
++     case PROP_CLIMB_RATE:
++       priv->climb_rate = g_value_get_double (value);
++diff --git a/gtk/gtkcomboboxtext.c b/gtk/gtkcomboboxtext.c
++index 9ffba687660c1214..5e75323c2c55d491 100644
++--- a/gtk/gtkcomboboxtext.c
+++++ b/gtk/gtkcomboboxtext.c
++@@ -275,7 +275,7 @@ gtk_combo_box_text_buildable_custom_tag_start (GtkBuildable     *buildable,
++ 
++       parser_data = g_slice_new0 (ItemParserData);
++       parser_data->builder = g_object_ref (builder);
++-      parser_data->object = g_object_ref (buildable);
+++      parser_data->object = (GObject *)g_object_ref (buildable);
++       parser_data->domain = gtk_builder_get_translation_domain (builder);
++       *parser = item_parser;
++       *data = parser_data;
++diff --git a/gtk/gtklabel.c b/gtk/gtklabel.c
++index c47de5924f6f0b49..879586b0d9855374 100644
++--- a/gtk/gtklabel.c
+++++ b/gtk/gtklabel.c
++@@ -1336,7 +1336,7 @@ gtk_label_buildable_custom_tag_start (GtkBuildable     *buildable,
++ 
++       parser_data = g_slice_new0 (PangoParserData);
++       parser_data->builder = g_object_ref (builder);
++-      parser_data->object = g_object_ref (buildable);
+++      parser_data->object = (GObject *) g_object_ref (buildable);
++       *parser = pango_parser;
++       *data = parser_data;
++       return TRUE;
++diff --git a/gtk/gtktoolpalette.c b/gtk/gtktoolpalette.c
++index b984193ca3375223..ba4e472dea4ebd77 100644
++--- a/gtk/gtktoolpalette.c
+++++ b/gtk/gtktoolpalette.c
++@@ -734,7 +734,7 @@ gtk_tool_palette_add (GtkContainer *container,
++ 
++   g_ptr_array_add (palette->priv->groups, info);
++   info->pos = palette->priv->groups->len - 1;
++-  info->widget = g_object_ref_sink (child);
+++  info->widget = (GtkToolItemGroup *)g_object_ref_sink (child);
++ 
++   gtk_widget_set_parent (child, GTK_WIDGET (palette));
++ }
++diff --git a/gtk/gtktreeview.c b/gtk/gtktreeview.c
++index 89301eb91d21c793..0d2d15b4883a7110 100644
++--- a/gtk/gtktreeview.c
+++++ b/gtk/gtktreeview.c
++@@ -14147,7 +14147,7 @@ gtk_tree_view_set_search_entry (GtkTreeView *tree_view,
++ 
++   if (entry)
++     {
++-      tree_view->priv->search_entry = g_object_ref (entry);
+++      tree_view->priv->search_entry = GTK_WIDGET (g_object_ref (entry));
++       tree_view->priv->search_custom_entry_set = TRUE;
++ 
++       if (tree_view->priv->search_entry_changed_id == 0)
++diff --git a/gtk/gtkwidget.c b/gtk/gtkwidget.c
++index d8f6023ba3ae164c..b6d7b815505760da 100644
++--- a/gtk/gtkwidget.c
+++++ b/gtk/gtkwidget.c
++@@ -10686,7 +10686,7 @@ gtk_widget_buildable_custom_tag_start (GtkBuildable     *buildable,
++       AccelGroupParserData *parser_data;
++ 
++       parser_data = g_slice_new0 (AccelGroupParserData);
++-      parser_data->object = g_object_ref (buildable);
+++      parser_data->object = (GObject *)g_object_ref (buildable);
++       *parser = accel_group_parser;
++       *data = parser_data;
++       return TRUE;
++diff --git a/modules/printbackends/cups/gtkprintbackendcups.c b/modules/printbackends/cups/gtkprintbackendcups.c
++index 2a000dc16ff57582..e081a70c45743fd2 100644
++--- a/modules/printbackends/cups/gtkprintbackendcups.c
+++++ b/modules/printbackends/cups/gtkprintbackendcups.c
++@@ -3479,7 +3479,7 @@ cups_request_ppd (GtkPrinter *printer)
++   g_io_channel_set_encoding (data->ppd_io, NULL, NULL);
++   g_io_channel_set_close_on_unref (data->ppd_io, TRUE);
++ 
++-  data->printer = g_object_ref (printer);
+++  data->printer = (GtkPrinterCups *) g_object_ref (printer);
++ 
++   resource = g_strdup_printf ("/printers/%s.ppd", 
++                               gtk_printer_cups_get_ppd_name (GTK_PRINTER_CUPS (printer)));
++diff --git a/tests/testentrycompletion.c b/tests/testentrycompletion.c
++index 36c41f78a42fb928..c556734b72ef71b0 100644
++--- a/tests/testentrycompletion.c
+++++ b/tests/testentrycompletion.c
++@@ -237,7 +237,7 @@ animation_timer (GtkEntryCompletion *completion)
++ 	{
++ 	  g_print ("removing model!\n");
++ 
++-	  old_store = g_object_ref (gtk_entry_completion_get_model (completion));
+++	  old_store = GTK_LIST_STORE (g_object_ref (gtk_entry_completion_get_model (completion)));
++ 	  gtk_entry_completion_set_model (completion, NULL);
++ 	}
++       else
++commit 018a4255624928fb7d951f1d1c89196fe77e8267
++Author: Cosimo Cecchi <cosimoc@gnome.org>
++Date:   Mon Feb 18 19:37:20 2013 -0500
++
++    immodule: fix a GCC warning
++
++diff --git a/gtk/gtkimmodule.c b/gtk/gtkimmodule.c
++index 1fcb17a7d87f197c..445b2be87f57742f 100644
++--- a/gtk/gtkimmodule.c
+++++ b/gtk/gtkimmodule.c
++@@ -662,7 +662,7 @@ lookup_immodule (gchar **immodules_list)
++ 	  gboolean found;
++ 	  gchar *context_id;
++ 	  found = g_hash_table_lookup_extended (contexts_hash, *immodules_list,
++-						&context_id, NULL);
+++						(gpointer *) &context_id, NULL);
++ 	  if (found)
++ 	    return context_id;
++ 	}
++Partial backport of:
++
++commit 345d865ac6b2f7760503ab144dd68e6062438b80
++Author: Matthias Clasen <mclasen@redhat.com>
++Date:   Wed Jan 18 00:57:20 2012 -0500
++
++    GtkScale: Fix late setting of marks
++
++diff --git a/gtk/gtkscale.c b/gtk/gtkscale.c
++index 4317523fb8f1918a..a573b2f6ba203b92 100644
++--- a/gtk/gtkscale.c
+++++ b/gtk/gtkscale.c
++@@ -1471,7 +1471,7 @@ gtk_scale_add_mark (GtkScale        *scale,
++   mark->position = position;
++  
++   priv->marks = g_slist_insert_sorted_with_data (priv->marks, mark,
++-                                                 (GCompareFunc) compare_marks,
+++                                                 compare_marks,
++                                                  GINT_TO_POINTER (
++                                                    gtk_range_get_inverted (GTK_RANGE (scale)) 
++                                                    ));
++Return the expected GObject * type.  This was not fixed upstream before
++this file was removed.
++
++diff --git a/gtk/gtkuimanager.c b/gtk/gtkuimanager.c
++index d004cf1ed3a2be11..8cbeda9e85b8f460 100644
++--- a/gtk/gtkuimanager.c
+++++ b/gtk/gtkuimanager.c
++@@ -503,7 +503,7 @@ gtk_ui_manager_buildable_construct_child (GtkBuildable *buildable,
++   g_signal_connect (widget, "hierarchy-changed",
++ 		    G_CALLBACK (child_hierarchy_changed_cb),
++ 		    GTK_UI_MANAGER (buildable));
++-  return g_object_ref (widget);
+++  return G_OBJECT (g_object_ref (widget));
++ }
++ 
++ static void
++Part of this commit upstream:
++
++commit ca94ff10ce2ea57bfde7692aaa558b1260c9ff75
++Author: Daniel Boles <dboles.src@gmail.com>
++Date:   Fri Jun 29 20:00:06 2018 +0100
++
++    testsuite/gtk/defaultvalue: Actually build...& fix
++    
++    It looks like this got dropped during the move from autotools and never
++    restored. I can see why, since making it work wasn't a hugely fun task!
++    
++    Notes on some less then obvious details:
++     * PlacesSidebar is private now and didn't seem to be to be particularly
++       easy to adapt to, so this moves to checking for it by name, not TYPE.
++       I couldn't find a (fast) better way; if you know how, please clean up
++     * added 2 casts to avoid warnings from the new type-propagating ref()
++     * GdkClipboard and GdkContentProvider need some properties dodged
++     * GtkToolItemGroup is gone
++     * fixed indentation and used TypeName:property-name syntax in a print()
++
++diff --git a/gtk/tests/defaultvalue.c b/gtk/tests/defaultvalue.c
++index 64a113c955822af0..b78dcd6f59353102 100644
++--- a/gtk/tests/defaultvalue.c
+++++ b/gtk/tests/defaultvalue.c
++@@ -91,13 +91,13 @@ test_type (gconstpointer data)
++   klass = g_type_class_ref (type);
++   
++   if (g_type_is_a (type, GTK_TYPE_SETTINGS))
++-    instance = g_object_ref (gtk_settings_get_default ());
+++    instance = G_OBJECT (g_object_ref (gtk_settings_get_default ()));
++   else if (g_type_is_a (type, GDK_TYPE_PANGO_RENDERER))
++-    instance = g_object_ref (gdk_pango_renderer_get_default (gdk_screen_get_default ()));
+++    instance = G_OBJECT (g_object_ref (gdk_pango_renderer_get_default (gdk_screen_get_default ())));
++   else if (g_type_is_a (type, GDK_TYPE_PIXMAP))
++-    instance = g_object_ref (gdk_pixmap_new (NULL, 1, 1, 1));
+++    instance = G_OBJECT (g_object_ref (gdk_pixmap_new (NULL, 1, 1, 1)));
++   else if (g_type_is_a (type, GDK_TYPE_COLORMAP))
++-    instance = g_object_ref (gdk_colormap_new (gdk_visual_get_best (), TRUE));
+++    instance = G_OBJECT (g_object_ref (gdk_colormap_new (gdk_visual_get_best (), TRUE)));
++   else if (g_type_is_a (type, GDK_TYPE_WINDOW))
++     {
++       GdkWindowAttr attributes;
++@@ -105,7 +105,7 @@ test_type (gconstpointer data)
++       attributes.event_mask = 0;
++       attributes.width = 100;
++       attributes.height = 100;
++-      instance = g_object_ref (gdk_window_new (NULL, &attributes, 0));
+++      instance = G_OBJECT (g_object_ref (gdk_window_new (NULL, &attributes, 0)));
++     }
++   else
++     instance = g_object_new (type, NULL);
++Convert to the expected pointer.  This was not fixed before the file
++was removed upstream.
++
++diff --git a/modules/other/gail/gailtreeview.c b/modules/other/gail/gailtreeview.c
++index 23923c59a16a6efb..ac6ff0a1c4a2fe22 100644
++--- a/modules/other/gail/gailtreeview.c
+++++ b/modules/other/gail/gailtreeview.c
++@@ -995,7 +995,7 @@ gail_tree_view_ref_child (AtkObject *obj,
++         gail_cell_add_state (cell, ATK_STATE_FOCUSABLE, FALSE);
++         if (focus_index == i)
++           {
++-            gailview->focus_cell = g_object_ref (cell);
+++            gailview->focus_cell = ATK_OBJECT (g_object_ref (cell));
++             gail_cell_add_state (cell, ATK_STATE_FOCUSED, FALSE);
++             g_signal_emit_by_name (gailview,
++                                    "active-descendant-changed",
++commit bcfc53066ae54d0adbf282d5678d9a4a7083b4d3
++Author: Javier Jardón <jjardon@gnome.org>
++Date:   Mon May 3 02:56:29 2010 +0200
++
++    tests: Too many arguments in call to 'create_menu'
++
++diff --git a/tests/testmenubars.c b/tests/testmenubars.c
++index 416a93986121d858..853d822a9b6a7925 100644
++--- a/tests/testmenubars.c
+++++ b/tests/testmenubars.c
++@@ -21,7 +21,7 @@
++ #include <gtk/gtk.h>
++ 
++ static GtkWidget *
++-create_menu (depth)
+++create_menu (guint depth)
++ {
++     GtkWidget *menu;
++     GtkWidget *menuitem;
++@@ -70,19 +70,19 @@ create_menubar (GtkPackDirection pack_dir,
++   menuitem = gtk_image_menu_item_new_from_stock (GTK_STOCK_HOME, NULL);
++   gtk_menu_shell_append (GTK_MENU_SHELL (menubar), menuitem);
++   gtk_label_set_angle (GTK_LABEL (GTK_BIN (menuitem)->child), angle);
++-  menu = create_menu (2, TRUE);
+++  menu = create_menu (2);
++   gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), menu);
++ 
++   menuitem = gtk_menu_item_new_with_label ("foo");
++   gtk_menu_shell_append (GTK_MENU_SHELL (menubar), menuitem);
++   gtk_label_set_angle (GTK_LABEL (GTK_BIN (menuitem)->child), angle);
++-  menu = create_menu (2, TRUE);
+++  menu = create_menu (2);
++   gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), menu);
++ 
++   menuitem = gtk_menu_item_new_with_label ("bar");
++   gtk_menu_shell_append (GTK_MENU_SHELL (menubar), menuitem);
++   gtk_label_set_angle (GTK_LABEL (GTK_BIN (menuitem)->child), angle);
++-  menu = create_menu (2, TRUE);
+++  menu = create_menu (2);
++   gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), menu);
++ 
++   return menubar;
++
+diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference xtrkcad-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/gtk2-gcc15.patch new-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/gtk2-gcc15.patch
+--- xtrkcad-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/gtk2-gcc15.patch	1969-12-31 19:00:00.000000000 -0500
++++ new-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/gtk2-gcc15.patch	2026-10-13 17:06:42.579787357 -0400
+@@ -0,0 +1,250 @@
++diff --git a/gtk/gtkitemfactory.c b/gtk/gtkitemfactory.c
++index 6addff3b13..49a7a77d6d 100644
++--- a/gtk/gtkitemfactory.c
+++++ b/gtk/gtkitemfactory.c
++@@ -1184,7 +1184,7 @@ gtk_item_factory_create_menu_entries (guint              n_entries,
++ 
++       entry.path = path;
++       entry.accelerator = entries[i].accelerator;
++-      entry.callback = entries[i].callback;
+++      entry.callback = (GtkItemFactoryCallback) entries[i].callback;
++       entry.callback_action = 0;
++       if (g_pattern_match_string (pspec_separator, path))
++ 	entry.item_type = "<Separator>";
++diff --git a/tests/testgtk.c b/tests/testgtk.c
++index b7ea442827..8205596e33 100644
++--- a/tests/testgtk.c
+++++ b/tests/testgtk.c
++@@ -4235,41 +4235,41 @@ dump_accels (gpointer             callback_data,
++ static GtkItemFactoryEntry menu_items[] =
++ {
++   { "/_File",                  NULL,         NULL,                  0, "<Branch>" },
++-  { "/File/tearoff1",          NULL,         gtk_ifactory_cb,       0, "<Tearoff>" },
++-  { "/File/_New",              NULL,         gtk_ifactory_cb,       0, "<StockItem>", GTK_STOCK_NEW },
++-  { "/File/_Open",             NULL,         gtk_ifactory_cb,       0, "<StockItem>", GTK_STOCK_OPEN },
++-  { "/File/_Save",             NULL,         gtk_ifactory_cb,       0, "<StockItem>", GTK_STOCK_SAVE },
++-  { "/File/Save _As...",       "<control>A", gtk_ifactory_cb,       0, "<StockItem>", GTK_STOCK_SAVE },
++-  { "/File/_Dump \"_Accels\"",  NULL,        dump_accels,           0 },
+++  { "/File/tearoff1",          NULL,         G_CALLBACK (gtk_ifactory_cb),       0, "<Tearoff>" },
+++  { "/File/_New",              NULL,         G_CALLBACK (gtk_ifactory_cb),       0, "<StockItem>", GTK_STOCK_NEW },
+++  { "/File/_Open",             NULL,         G_CALLBACK (gtk_ifactory_cb),       0, "<StockItem>", GTK_STOCK_OPEN },
+++  { "/File/_Save",             NULL,         G_CALLBACK (gtk_ifactory_cb),       0, "<StockItem>", GTK_STOCK_SAVE },
+++  { "/File/Save _As...",       "<control>A", G_CALLBACK (gtk_ifactory_cb),       0, "<StockItem>", GTK_STOCK_SAVE },
+++  { "/File/_Dump \"_Accels\"",  NULL,        G_CALLBACK (dump_accels),           0 },
++   { "/File/\\/Test__Escaping/And\\/\n\tWei\\\\rdly",
++-                                NULL,        gtk_ifactory_cb,       0 },
++-  { "/File/sep1",        NULL,               gtk_ifactory_cb,       0, "<Separator>" },
++-  { "/File/_Quit",       NULL,               gtk_ifactory_cb,       0, "<StockItem>", GTK_STOCK_QUIT },
+++                                NULL,        G_CALLBACK (gtk_ifactory_cb),       0 },
+++  { "/File/sep1",        NULL,               G_CALLBACK (gtk_ifactory_cb),       0, "<Separator>" },
+++  { "/File/_Quit",       NULL,               G_CALLBACK (gtk_ifactory_cb),       0, "<StockItem>", GTK_STOCK_QUIT },
++ 
++   { "/_Preferences",     		NULL, 0,               0, "<Branch>" },
++   { "/_Preferences/_Color", 		NULL, 0,               0, "<Branch>" },
++-  { "/_Preferences/Color/_Red",      	NULL, gtk_ifactory_cb, 0, "<RadioItem>" },
++-  { "/_Preferences/Color/_Green",   	NULL, gtk_ifactory_cb, 0, "/Preferences/Color/Red" },
++-  { "/_Preferences/Color/_Blue",        NULL, gtk_ifactory_cb, 0, "/Preferences/Color/Red" },
+++  { "/_Preferences/Color/_Red",      	NULL, G_CALLBACK (gtk_ifactory_cb), 0, "<RadioItem>" },
+++  { "/_Preferences/Color/_Green",   	NULL, G_CALLBACK (gtk_ifactory_cb), 0, "/Preferences/Color/Red" },
+++  { "/_Preferences/Color/_Blue",        NULL, G_CALLBACK (gtk_ifactory_cb), 0, "/Preferences/Color/Red" },
++   { "/_Preferences/_Shape", 		NULL, 0,               0, "<Branch>" },
++-  { "/_Preferences/Shape/_Square",      NULL, gtk_ifactory_cb, 0, "<RadioItem>" },
++-  { "/_Preferences/Shape/_Rectangle",   NULL, gtk_ifactory_cb, 0, "/Preferences/Shape/Square" },
++-  { "/_Preferences/Shape/_Oval",        NULL, gtk_ifactory_cb, 0, "/Preferences/Shape/Rectangle" },
++-  { "/_Preferences/Shape/_Rectangle",   NULL, gtk_ifactory_cb, 0, "/Preferences/Shape/Square" },
++-  { "/_Preferences/Shape/_Oval",        NULL, gtk_ifactory_cb, 0, "/Preferences/Shape/Rectangle" },
++-  { "/_Preferences/Shape/_Image",       NULL, gtk_ifactory_cb, 0, "<ImageItem>", apple },
++-  { "/_Preferences/Coffee",                  NULL, gtk_ifactory_cb, 0, "<CheckItem>" },
++-  { "/_Preferences/Toast",                   NULL, gtk_ifactory_cb, 0, "<CheckItem>" },
++-  { "/_Preferences/Marshmallow Froot Loops", NULL, gtk_ifactory_cb, 0, "<CheckItem>" },
+++  { "/_Preferences/Shape/_Square",      NULL, G_CALLBACK (gtk_ifactory_cb), 0, "<RadioItem>" },
+++  { "/_Preferences/Shape/_Rectangle",   NULL, G_CALLBACK (gtk_ifactory_cb), 0, "/Preferences/Shape/Square" },
+++  { "/_Preferences/Shape/_Oval",        NULL, G_CALLBACK (gtk_ifactory_cb), 0, "/Preferences/Shape/Rectangle" },
+++  { "/_Preferences/Shape/_Rectangle",   NULL, G_CALLBACK (gtk_ifactory_cb), 0, "/Preferences/Shape/Square" },
+++  { "/_Preferences/Shape/_Oval",        NULL, G_CALLBACK (gtk_ifactory_cb), 0, "/Preferences/Shape/Rectangle" },
+++  { "/_Preferences/Shape/_Image",       NULL, G_CALLBACK (gtk_ifactory_cb), 0, "<ImageItem>", apple },
+++  { "/_Preferences/Coffee",                  NULL, G_CALLBACK (gtk_ifactory_cb), 0, "<CheckItem>" },
+++  { "/_Preferences/Toast",                   NULL, G_CALLBACK (gtk_ifactory_cb), 0, "<CheckItem>" },
+++  { "/_Preferences/Marshmallow Froot Loops", NULL, G_CALLBACK (gtk_ifactory_cb), 0, "<CheckItem>" },
++ 
++   /* For testing deletion of menus */
++   { "/_Preferences/Should_NotAppear",          NULL, 0,               0, "<Branch>" },
++-  { "/Preferences/ShouldNotAppear/SubItem1",   NULL, gtk_ifactory_cb, 0 },
++-  { "/Preferences/ShouldNotAppear/SubItem2",   NULL, gtk_ifactory_cb, 0 },
+++  { "/Preferences/ShouldNotAppear/SubItem1",   NULL, G_CALLBACK (gtk_ifactory_cb), 0 },
+++  { "/Preferences/ShouldNotAppear/SubItem2",   NULL, G_CALLBACK (gtk_ifactory_cb), 0 },
++ 
++   { "/_Help",            NULL,         0,                     0, "<LastBranch>" },
++-  { "/Help/_Help",       NULL,         gtk_ifactory_cb,       0, "<StockItem>", GTK_STOCK_HELP},
++-  { "/Help/_About",      NULL,         gtk_ifactory_cb,       0 },
+++  { "/Help/_Help",       NULL,         G_CALLBACK (gtk_ifactory_cb),       0, "<StockItem>", GTK_STOCK_HELP},
+++  { "/Help/_About",      NULL,         G_CALLBACK (gtk_ifactory_cb),       0 },
++ };
++ 
++ 
++diff --git a/tests/testsocket.c b/tests/testsocket.c
++index 6801e09762..80144d3382 100644
++--- a/tests/testsocket.c
+++++ b/tests/testsocket.c
++@@ -65,7 +65,7 @@ quit_cb (gpointer        callback_data,
++ static GtkItemFactoryEntry menu_items[] =
++ {
++   { "/_File",            NULL,         NULL,                  0, "<Branch>" },
++-  { "/File/_Quit",       "<control>Q", quit_cb,               0 },
+++  { "/File/_Quit",       "<control>Q", G_CALLBACK (quit_cb),               0 },
++ };
++ 
++ static void
++diff --git a/tests/testsocket_common.c b/tests/testsocket_common.c
++index 1a4fece2a0..0af105e549 100644
++--- a/tests/testsocket_common.c
+++++ b/tests/testsocket_common.c
++@@ -62,13 +62,13 @@ print_hello (GtkWidget *w,
++ 
++ static GtkItemFactoryEntry menu_items[] = {
++   { "/_File",         NULL,         NULL,           0, "<Branch>" },
++-  { "/File/_New",     "<control>N", print_hello,    ACTION_FILE_NEW, "<Item>" },
++-  { "/File/_Open",    "<control>O", print_hello,    ACTION_FILE_OPEN, "<Item>" },
+++  { "/File/_New",     "<control>N", G_CALLBACK (print_hello),    ACTION_FILE_NEW, "<Item>" },
+++  { "/File/_Open",    "<control>O", G_CALLBACK (print_hello),    ACTION_FILE_OPEN, "<Item>" },
++   { "/File/sep1",     NULL,         NULL,           0, "<Separator>" },
++-  { "/File/Quit",     "<control>Q", gtk_main_quit,  0, "<Item>" },
++-  { "/O_K",            "<control>K",print_hello,    ACTION_OK, "<Item>" },
+++  { "/File/Quit",     "<control>Q", G_CALLBACK (gtk_main_quit),  0, "<Item>" },
+++  { "/O_K",            "<control>K",G_CALLBACK (print_hello),    ACTION_OK, "<Item>" },
++   { "/_Help",         NULL,         NULL,           0, "<LastBranch>" },
++-  { "/_Help/About",   NULL,         print_hello,    ACTION_HELP_ABOUT, "<Item>" },
+++  { "/_Help/About",   NULL,         G_CALLBACK (print_hello),    ACTION_HELP_ABOUT, "<Item>" },
++ };
++ 
++ static void
++diff --git a/tests/testtext.c b/tests/testtext.c
++index b9678bfc99..5d15bc254d 100644
++--- a/tests/testtext.c
+++++ b/tests/testtext.c
++@@ -1946,69 +1946,68 @@ view_init_menus (View *view)
++     gtk_menu_item_activate (GTK_MENU_ITEM (menu_item));
++ }
++ 
++-static GtkItemFactoryEntry menu_items[] =
++-{
++-  { "/_File",            NULL,         NULL,        0, "<Branch>" },
++-  { "/File/_New",        "<control>N", do_new,      0, NULL },
++-  { "/File/New _View",   NULL,         do_new_view, 0, NULL },
++-  { "/File/_Open",       "<control>O", do_open,     0, NULL },
++-  { "/File/_Save",       "<control>S", do_save,     0, NULL },
++-  { "/File/Save _As...", NULL,         do_save_as,  0, NULL },
++-  { "/File/sep1",        NULL,         NULL,        0, "<Separator>" },
++-  { "/File/_Close",     "<control>W" , do_close,    0, NULL },
++-  { "/File/E_xit",      "<control>Q" , do_exit,     0, NULL },
+++static GtkItemFactoryEntry menu_items[] = {
+++  { "/_File", NULL, NULL, 0, "<Branch>" },
+++  { "/File/_New", "<control>N", G_CALLBACK (do_new), 0, NULL },
+++  { "/File/New _View", NULL, G_CALLBACK (do_new_view), 0, NULL },
+++  { "/File/_Open", "<control>O", G_CALLBACK (do_open), 0, NULL },
+++  { "/File/_Save", "<control>S", G_CALLBACK (do_save), 0, NULL },
+++  { "/File/Save _As...", NULL, G_CALLBACK (do_save_as), 0, NULL },
+++  { "/File/sep1", NULL, NULL, 0, "<Separator>" },
+++  { "/File/_Close", "<control>W", G_CALLBACK (do_close), 0, NULL },
+++  { "/File/E_xit", "<control>Q", G_CALLBACK (do_exit), 0, NULL },
++ 
++   { "/_Edit", NULL, 0, 0, "<Branch>" },
++-  { "/Edit/Copy", NULL, do_copy, 0, NULL },
+++  { "/Edit/Copy", NULL, G_CALLBACK (do_copy), 0, NULL },
++   { "/Edit/sep1", NULL, NULL, 0, "<Separator>" },
++-  { "/Edit/Find...", NULL, do_search, 0, NULL },
++-  { "/Edit/Select All", "<control>A", do_select_all, 0, NULL }, 
+++  { "/Edit/Find...", NULL, G_CALLBACK (do_search), 0, NULL },
+++  { "/Edit/Select All", "<control>A", G_CALLBACK (do_select_all), 0, NULL },
++ 
++-  { "/_Settings",   	  NULL,         NULL,             0, "<Branch>" },
++-  { "/Settings/Wrap _Off",   NULL,      do_wrap_changed,  GTK_WRAP_NONE, "<RadioItem>" },
++-  { "/Settings/Wrap _Words", NULL,      do_wrap_changed,  GTK_WRAP_WORD, "/Settings/Wrap Off" },
++-  { "/Settings/Wrap _Chars", NULL,      do_wrap_changed,  GTK_WRAP_CHAR, "/Settings/Wrap Off" },
++-  { "/Settings/sep1",        NULL,      NULL,             0, "<Separator>" },
++-  { "/Settings/Editable", NULL,      do_editable_changed,  TRUE, "<RadioItem>" },
++-  { "/Settings/Not editable",    NULL,      do_editable_changed,  FALSE, "/Settings/Editable" },
++-  { "/Settings/sep1",        NULL,      NULL,             0, "<Separator>" },
+++  { "/_Settings", NULL, NULL, 0, "<Branch>" },
+++  { "/Settings/Wrap _Off", NULL, G_CALLBACK (do_wrap_changed), GTK_WRAP_NONE, "<RadioItem>" },
+++  { "/Settings/Wrap _Words", NULL, G_CALLBACK (do_wrap_changed), GTK_WRAP_WORD, "/Settings/Wrap Off" },
+++  { "/Settings/Wrap _Chars", NULL, G_CALLBACK (do_wrap_changed), GTK_WRAP_CHAR, "/Settings/Wrap Off" },
+++  { "/Settings/sep1", NULL, NULL, 0, "<Separator>" },
+++  { "/Settings/Editable", NULL, G_CALLBACK (do_editable_changed), TRUE, "<RadioItem>" },
+++  { "/Settings/Not editable", NULL, G_CALLBACK (do_editable_changed), FALSE, "/Settings/Editable" },
+++  { "/Settings/sep1", NULL, NULL, 0, "<Separator>" },
++ 
++-  { "/Settings/Cursor normal",    NULL,      do_cursor_visible_changed,  1, "<RadioItem>" },
++-  { "/Settings/Cursor not visible", NULL,      do_cursor_visible_changed,  0, "/Settings/Cursor normal" },
++-  { "/Settings/Cursor colored", NULL,      do_cursor_visible_changed,  2, "/Settings/Cursor normal" },
++-  { "/Settings/sep1",        NULL,      NULL,          0, "<Separator>" },
++-  
++-  { "/Settings/Left-to-Right", NULL,    do_direction_changed,  GTK_TEXT_DIR_LTR, "<RadioItem>" },
++-  { "/Settings/Right-to-Left", NULL,    do_direction_changed,  GTK_TEXT_DIR_RTL, "/Settings/Left-to-Right" },
+++  { "/Settings/Cursor normal", NULL, G_CALLBACK (do_cursor_visible_changed), 1, "<RadioItem>" },
+++  { "/Settings/Cursor not visible", NULL, G_CALLBACK (do_cursor_visible_changed), 0, "/Settings/Cursor normal" },
+++  { "/Settings/Cursor colored", NULL, G_CALLBACK (do_cursor_visible_changed), 2, "/Settings/Cursor normal" },
+++  { "/Settings/sep1", NULL, NULL, 0, "<Separator>" },
++ 
++-  { "/Settings/sep1",        NULL,      NULL,                0, "<Separator>" },
++-  { "/Settings/Sane spacing", NULL,    do_spacing_changed,  FALSE, "<RadioItem>" },
++-  { "/Settings/Funky spacing", NULL,    do_spacing_changed,  TRUE, "/Settings/Sane spacing" },
++-  { "/Settings/sep1",        NULL,      NULL,                0, "<Separator>" },
++-  { "/Settings/Don't cycle color tags", NULL,    do_color_cycle_changed,  FALSE, "<RadioItem>" },
++-  { "/Settings/Cycle colors", NULL,    do_color_cycle_changed,  TRUE, "/Settings/Don't cycle color tags" },
++-  { "/_Attributes",   	  NULL,         NULL,                0, "<Branch>" },
++-  { "/Attributes/Editable",   	  NULL,         do_apply_editable, TRUE, NULL },
++-  { "/Attributes/Not editable",   	  NULL,         do_apply_editable, FALSE, NULL },
++-  { "/Attributes/Invisible",   	  NULL,         do_apply_invisible, FALSE, NULL },
++-  { "/Attributes/Visible",   	  NULL,         do_apply_invisible, TRUE, NULL },
++-  { "/Attributes/Rise",   	  NULL,         do_apply_rise, FALSE, NULL },
++-  { "/Attributes/Large",   	  NULL,         do_apply_large, FALSE, NULL },
++-  { "/Attributes/Indent",   	  NULL,         do_apply_indent, FALSE, NULL },
++-  { "/Attributes/Margins",   	  NULL,         do_apply_margin, FALSE, NULL },
++-  { "/Attributes/Custom tabs",   	  NULL,         do_apply_tabs, FALSE, NULL },
++-  { "/Attributes/Default tabs",   	  NULL,         do_apply_tabs, TRUE, NULL },
++-  { "/Attributes/Color cycles",   	  NULL,         do_apply_colors, TRUE, NULL },
++-  { "/Attributes/No colors",   	          NULL,         do_apply_colors, FALSE, NULL },
++-  { "/Attributes/Remove all tags",        NULL, do_remove_tags, 0, NULL },
++-  { "/Attributes/Properties",             NULL, do_properties, 0, NULL },
++-  { "/Attributes/Rich Text copy & drag",  NULL, do_rich_text, 0, NULL },
++-  { "/Attributes/Rich Text paste & drop", NULL, do_rich_text, 1, NULL },
++-  { "/_Test",   	 NULL,         NULL,           0, "<Branch>" },
++-  { "/Test/_Example",  	 NULL,         do_example,  0, NULL },
++-  { "/Test/_Insert and scroll", NULL,         do_insert_and_scroll,  0, NULL },
++-  { "/Test/_Add fixed children", NULL,         do_add_children,  0, NULL },
++-  { "/Test/A_dd focusable children", NULL,    do_add_focus_children,  0, NULL },
+++  { "/Settings/Left-to-Right", NULL, G_CALLBACK (do_direction_changed), GTK_TEXT_DIR_LTR, "<RadioItem>" },
+++  { "/Settings/Right-to-Left", NULL, G_CALLBACK (do_direction_changed), GTK_TEXT_DIR_RTL, "/Settings/Left-to-Right" },
+++
+++  { "/Settings/sep1", NULL, NULL, 0, "<Separator>" },
+++  { "/Settings/Sane spacing", NULL, G_CALLBACK (do_spacing_changed), FALSE, "<RadioItem>" },
+++  { "/Settings/Funky spacing", NULL, G_CALLBACK (do_spacing_changed), TRUE, "/Settings/Sane spacing" },
+++  { "/Settings/sep1", NULL, NULL, 0, "<Separator>" },
+++  { "/Settings/Don't cycle color tags", NULL, G_CALLBACK (do_color_cycle_changed), FALSE, "<RadioItem>" },
+++  { "/Settings/Cycle colors", NULL, G_CALLBACK (do_color_cycle_changed), TRUE, "/Settings/Don't cycle color tags" },
+++  { "/_Attributes", NULL, NULL, 0, "<Branch>" },
+++  { "/Attributes/Editable", NULL, G_CALLBACK (do_apply_editable), TRUE, NULL },
+++  { "/Attributes/Not editable", NULL, G_CALLBACK (do_apply_editable), FALSE, NULL },
+++  { "/Attributes/Invisible", NULL, G_CALLBACK (do_apply_invisible), FALSE, NULL },
+++  { "/Attributes/Visible", NULL, G_CALLBACK (do_apply_invisible), TRUE, NULL },
+++  { "/Attributes/Rise", NULL, G_CALLBACK (do_apply_rise), FALSE, NULL },
+++  { "/Attributes/Large", NULL, G_CALLBACK (do_apply_large), FALSE, NULL },
+++  { "/Attributes/Indent", NULL, G_CALLBACK (do_apply_indent), FALSE, NULL },
+++  { "/Attributes/Margins", NULL, G_CALLBACK (do_apply_margin), FALSE, NULL },
+++  { "/Attributes/Custom tabs", NULL, G_CALLBACK (do_apply_tabs), FALSE, NULL },
+++  { "/Attributes/Default tabs", NULL, G_CALLBACK (do_apply_tabs), TRUE, NULL },
+++  { "/Attributes/Color cycles", NULL, G_CALLBACK (do_apply_colors), TRUE, NULL },
+++  { "/Attributes/No colors", NULL, G_CALLBACK (do_apply_colors), FALSE, NULL },
+++  { "/Attributes/Remove all tags", NULL, G_CALLBACK (do_remove_tags), 0, NULL },
+++  { "/Attributes/Properties", NULL, G_CALLBACK (do_properties), 0, NULL },
+++  { "/Attributes/Rich Text copy & drag", NULL, G_CALLBACK (do_rich_text), 0, NULL },
+++  { "/Attributes/Rich Text paste & drop", NULL, G_CALLBACK (do_rich_text), 1, NULL },
+++  { "/_Test", NULL, NULL, 0, "<Branch>" },
+++  { "/Test/_Example", NULL, G_CALLBACK (do_example), 0, NULL },
+++  { "/Test/_Insert and scroll", NULL, G_CALLBACK (do_insert_and_scroll), 0, NULL },
+++  { "/Test/_Add fixed children", NULL, G_CALLBACK (do_add_children), 0, NULL },
+++  { "/Test/A_dd focusable children", NULL, G_CALLBACK (do_add_focus_children), 0, NULL },
++ };
++ 
++ static gboolean
+diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference xtrkcad-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/gtk2.json new-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/gtk2.json
+--- xtrkcad-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/gtk2.json	1969-12-31 19:00:00.000000000 -0500
++++ new-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/gtk2.json	2026-10-13 17:06:42.579914468 -0400
+@@ -0,0 +1,120 @@
++{
++  "name": "gnome-themes-extra",
++  "rm-configure": true,
++  "config-opts": [
++    "--disable-dependency-tracking",
++    "--disable-gtk3-engine"
++  ],
++  "cleanup": [
++    "/share/themes/Adwaita/gtk-3.0",
++    "/share/themes/Adwaita-dark/gtk-3.0",
++    "/share/themes/HighContrast/gtk-3.0",
++    "*.la"
++  ],
++  "sources": [
++    {
++      "type": "archive",
++      "url": "https://download.gnome.org/sources/gnome-themes-extra/3.28/gnome-themes-extra-3.28.tar.xz",
++      "sha256": "7c4ba0bff001f06d8983cfc105adaac42df1d1267a2591798a780bac557a5819"
++    },
++    {
++      "type": "shell",
++      "//": "We want to avoid generating icons as its 99% of the build time and gnome runtime has it",
++      "commands": [
++        "sed -i 's/icons//' themes/HighContrast/Makefile.am"
++      ]
++    },
++    {
++      "type": "script",
++      "commands": [
++        "autoreconf -fsi"
++      ]
++    }
++  ],
++  "modules": [
++    "../intltool/intltool-0.51.json",
++    {
++      "name": "gtk2",
++      "cleanup": [
++        "/bin",
++        "/share/gtk-2.0",
++        "/share/aclocal",
++        "/share/gtk-doc",
++        "/lib/pkgconfig",
++        "/lib/gtk-2.0/include",
++        "/include",
++        "*.la"
++      ],
++      "x-cpe": {
++        "product": "gtk+"
++      },
++      "config-opts": [
++        "--disable-dependency-tracking",
++        "--disable-gtk-doc-html",
++        "--disable-introspection",
++        "--with-xinput=xfree"
++      ],
++      "sources": [
++        {
++          "type": "archive",
++          "url": "https://download.gnome.org/sources/gtk+/2.24/gtk+-2.24.33.tar.xz",
++          "sha256": "ac2ac757f5942d318a311a54b0c80b5ef295f299c2a73c632f6bfb1ff49cc6da"
++        },
++        {
++          "type": "patch",
++          "path": "gtk2-use-adwaita-theme.patch"
++        },
++        {
++          "type": "patch",
++          "paths": [
++              "gtk2-fix-crash-in-show-uri.patch",
++              "gtk2-gcc14.patch",
++              "gtk2-gcc15.patch"
++          ]
++        }
++      ]
++    },
++    {
++      "name": "ibus-gtk2",
++      "config-opts": [
++        "--disable-xim",
++        "--disable-dconf",
++        "--disable-gconf",
++        "--disable-memconf",
++        "--disable-schemas-compile",
++        "--disable-schemas-install",
++        "--disable-gtk3",
++        "--disable-setup",
++        "--disable-ui",
++        "--disable-engine",
++        "--disable-python-library",
++        "--disable-libnotify",
++        "--disable-emoji-dict",
++        "--disable-appindicator",
++        "--disable-glibtest",
++        "--disable-tests",
++        "--disable-unicode-dict",
++        "--disable-introspection",
++        "--disable-python2"
++      ],
++      "make-install-args": [
++        "-C", "client/gtk2"
++      ],
++      "post-install": [
++        "gtk-query-immodules-2.0 > immodules.cache",
++        "install immodules.cache -t $(pkg-config --variable=libdir gtk+-2.0)/gtk-2.0/2.10.0/"
++      ],
++      "sources": [
++        {
++          "type": "archive",
++          "url": "https://github.com/ibus/ibus/releases/download/1.5.23/ibus-1.5.23.tar.gz",
++          "sha256": "b7e8d5bdb7d71a5ba4ee43cdf374675f77121a71c1679c9b9e7e02875bd0e150"
++        },
++        {
++          "type": "patch",
++          "path": "ibus-gcc15.patch"
++        }
++      ]
++    }
++  ]
++}
+diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference xtrkcad-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/gtk2-murrine-c99.patch new-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/gtk2-murrine-c99.patch
+--- xtrkcad-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/gtk2-murrine-c99.patch	1969-12-31 19:00:00.000000000 -0500
++++ new-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/gtk2-murrine-c99.patch	2026-10-13 17:06:42.579829477 -0400
+@@ -0,0 +1,34 @@
++diff -ur murrine-0.98.2.orig/src/murrine_rc_style.h murrine-0.98.2/src/murrine_rc_style.h
++--- murrine-0.98.2.orig/src/murrine_rc_style.h	2012-01-17 18:46:01.000000000 +0100
+++++ murrine-0.98.2/src/murrine_rc_style.h	2022-12-14 21:33:03.242067429 +0100
++@@ -154,5 +154,6 @@
++ };
++ 
++ GType murrine_rc_style_get_type	(void);
+++void murrine_rc_style_register_types (GTypeModule *module);
++ 
++ #endif /* MURRINE_RC_STYLE_H */
++diff -ur murrine-0.98.2.orig/src/murrine_style.h murrine-0.98.2/src/murrine_style.h
++--- murrine-0.98.2.orig/src/murrine_style.h	2012-01-17 18:46:01.000000000 +0100
+++++ murrine-0.98.2/src/murrine_style.h	2022-12-14 21:33:41.604671684 +0100
++@@ -102,5 +102,6 @@
++ };
++ 
++ GType murrine_style_get_type (void);
+++void murrine_style_register_types (GTypeModule *module);
++ 
++ #endif /* MURRINE_STYLE_H */
++diff -ur murrine-0.98.2.orig/src/support.h murrine-0.98.2/src/support.h
++--- murrine-0.98.2.orig/src/support.h	2012-01-17 18:46:01.000000000 +0100
+++++ murrine-0.98.2/src/support.h	2022-12-14 21:27:27.288533100 +0100
++@@ -118,6 +118,10 @@
++ 
++ #define MRN_WIDGET_HAS_DEFAULT(object) ((object) && MRN_IS_WIDGET(object) && GTK_WIDGET_HAS_DEFAULT(object))
++ 
+++gboolean murrine_object_is_a (const GObject * object, const gchar * type_name);
+++gboolean murrine_widget_is_ltr (GtkWidget *widget);
+++
+++
++ G_GNUC_INTERNAL GtkTextDirection murrine_get_direction (GtkWidget *widget);
++ G_GNUC_INTERNAL GtkWidget *murrine_special_get_ancestor (GtkWidget *widget, GType widget_type);
++ G_GNUC_INTERNAL GdkColor* murrine_get_parent_bgcolor (GtkWidget *widget);
+diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference xtrkcad-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/gtk2-use-adwaita-theme.patch new-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/gtk2-use-adwaita-theme.patch
+--- xtrkcad-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/gtk2-use-adwaita-theme.patch	1969-12-31 19:00:00.000000000 -0500
++++ new-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/gtk2-use-adwaita-theme.patch	2026-10-13 17:06:42.579871627 -0400
+@@ -0,0 +1,80 @@
++diff --git a/gdk/x11/gdkevents-x11.c b/gdk/x11/gdkevents-x11.c
++index 186a8f5cb2..f5c39b5afe 100644
++--- a/gdk/x11/gdkevents-x11.c
+++++ b/gdk/x11/gdkevents-x11.c
++@@ -3000,6 +3000,50 @@ check_transform (const gchar *xsettings_name,
++     return TRUE;
++ }
++ 
+++static gchar *
+++gtk_rc_get_theme_dir (void)
+++{
+++  const gchar *var;
+++  gchar *path;
+++
+++  var = g_getenv ("GTK_DATA_PREFIX");
+++
+++  if (var)
+++    path = g_build_filename (var, "share", "themes", NULL);
+++  else
+++    path = g_build_filename ("/app", "share", "themes", NULL);
+++
+++  return path;
+++}
+++
+++static gboolean
+++theme_name_valid (XSettingsSetting *setting)
+++{
+++  gboolean res = FALSE;
+++
+++  if (setting->type == XSETTINGS_TYPE_STRING)
+++    {
+++      char *theme_name = setting->data.v_string;
+++      gchar *theme_dir = gtk_rc_get_theme_dir ();
+++      gchar *path = g_build_filename (theme_dir, theme_name, "gtk-2.0", "gtkrc", NULL);
+++
+++      if (g_file_test (path, G_FILE_TEST_EXISTS))
+++        res = TRUE;
+++      else if (g_str_has_suffix (theme_name, "-Dark") ||
+++               g_str_has_suffix (theme_name, "-dark"))
+++        {
+++          setting->data.v_string = g_strdup ("Adwaita-dark");
+++          g_free (theme_name);
+++          res = TRUE;
+++        }
+++
+++      g_free (theme_dir);
+++      g_free (path);
+++    }
+++
+++  return res;
+++}
+++
++ /**
++  * gdk_screen_get_setting:
++  * @screen: the #GdkScreen where the setting is located
++@@ -3050,6 +3094,11 @@ gdk_screen_get_setting (GdkScreen   *screen,
++   if (result != XSETTINGS_SUCCESS)
++     goto out;
++ 
+++  if (strcmp (name, "gtk-theme-name") == 0 &&
+++      (setting->type != XSETTINGS_TYPE_STRING ||
+++       !theme_name_valid (setting)))
+++    goto out;
+++
++   switch (setting->type)
++     {
++     case XSETTINGS_TYPE_INT:
++diff --git a/gtk/gtksettings.c b/gtk/gtksettings.c
++index 3fbbf00548..5c0a4b33d2 100644
++--- a/gtk/gtksettings.c
+++++ b/gtk/gtksettings.c
++@@ -312,7 +312,7 @@ gtk_settings_class_init (GtkSettingsClass *class)
++ #ifdef G_OS_WIN32
++ 								  "MS-Windows",
++ #else
++-								  "Raleigh",
+++								  "Adwaita",
++ #endif
++ 								  GTK_PARAM_READWRITE),
++                                              NULL);
+diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference xtrkcad-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/ibus-gcc15.patch new-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/ibus-gcc15.patch
+--- xtrkcad-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/ibus-gcc15.patch	1969-12-31 19:00:00.000000000 -0500
++++ new-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/ibus-gcc15.patch	2026-10-13 17:06:42.579979978 -0400
+@@ -0,0 +1,13 @@
++diff --git a/src/ibusenginesimple.c b/src/ibusenginesimple.c
++index 43bd5283..8896207e 100644
++--- a/src/ibusenginesimple.c
+++++ b/src/ibusenginesimple.c
++@@ -542,7 +542,7 @@ check_emoji_table (IBusEngineSimple       *simple,
++         g_object_ref_sink (priv->lookup_table);
++     }
++     if (emoji_dict == NULL)
++-        emoji_dict = priv->emoji_dict = load_emoji_dict (simple);
+++        emoji_dict = priv->emoji_dict = load_emoji_dict ();
++ 
++     if (emoji_dict == NULL || emoji_dict->dict == NULL)
++         return FALSE;
+diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference xtrkcad-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/murrine-engine-fix-crash.patch new-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/murrine-engine-fix-crash.patch
+--- xtrkcad-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/murrine-engine-fix-crash.patch	1969-12-31 19:00:00.000000000 -0500
++++ new-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/murrine-engine-fix-crash.patch	2026-10-13 17:06:42.580022989 -0400
+@@ -0,0 +1,12 @@
++Index: gtk2-engines-murrine-0.98.2/src/murrine_style.c
++===================================================================
++--- gtk2-engines-murrine-0.98.2.orig/src/murrine_style.c
+++++ gtk2-engines-murrine-0.98.2/src/murrine_style.c
++@@ -2171,6 +2171,7 @@ murrine_style_draw_layout (GtkStyle
++ 			cairo_t *cr; 
++ 			cr = murrine_begin_paint (window, area); 
++ 			cairo_translate (cr, x+xos, y+yos); 
+++			pango_cairo_update_layout (cr, layout);
++ 			pango_cairo_layout_path (cr, layout);
++ 			murrine_set_color_rgba (cr, &temp, 0.5);
++ 			cairo_stroke (cr);
+diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference xtrkcad-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/readme.md new-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/readme.md
+--- xtrkcad-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/readme.md	1969-12-31 19:00:00.000000000 -0500
++++ new-fork-xtrkcad/distribution/flatpak/shared-modules/gtk2/readme.md	2026-10-13 17:06:42.580075029 -0400
+@@ -0,0 +1,10 @@
++This directory contains two manifests:
++
++- `gtk2.json`
++
++  This contains a build of GTK2, the ibus input module, and the Adwaita and HighContrast themes.
++
++- `gtk2-common-themes.json`
++
++  This contains a collection of commonly used GTK2 themes that users might have. This is optional as it does build a few things.
++  Without the matching theme the build of GTK2 here will always default to Adwaita.
+diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference xtrkcad-fork-xtrkcad/distribution/flatpak/shared-modules/intltool/intltool-0.51.json new-fork-xtrkcad/distribution/flatpak/shared-modules/intltool/intltool-0.51.json
+--- xtrkcad-fork-xtrkcad/distribution/flatpak/shared-modules/intltool/intltool-0.51.json	1969-12-31 19:00:00.000000000 -0500
++++ new-fork-xtrkcad/distribution/flatpak/shared-modules/intltool/intltool-0.51.json	2026-10-13 17:06:42.580162430 -0400
+@@ -0,0 +1,15 @@
++{
++  "name": "intltool",
++  "cleanup": [ "*" ],
++  "sources": [
++    {
++      "type": "archive",
++      "url": "https://ftp.belnet.be/mirror/linuxfromscratch.org/lfs/lfs-packages/12.1/intltool-0.51.0.tar.gz",
++      "sha256": "67c74d94196b153b774ab9f89b2fa6c6ba79352407037c8c14d5aeb334e959cd"
++    },
++    {
++      "type": "patch",
++      "path": "intltool-perl5.26-regex-fixes.patch"
++    }
++  ]
++}
+diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference xtrkcad-fork-xtrkcad/distribution/flatpak/shared-modules/intltool/intltool-perl5.26-regex-fixes.patch new-fork-xtrkcad/distribution/flatpak/shared-modules/intltool/intltool-perl5.26-regex-fixes.patch
+--- xtrkcad-fork-xtrkcad/distribution/flatpak/shared-modules/intltool/intltool-perl5.26-regex-fixes.patch	1969-12-31 19:00:00.000000000 -0500
++++ new-fork-xtrkcad/distribution/flatpak/shared-modules/intltool/intltool-perl5.26-regex-fixes.patch	2026-10-13 17:06:42.580208910 -0400
+@@ -0,0 +1,59 @@
++Description: Escape "{", to prevent complaints from perl 5.22 and 5.26
++Author: Roderich Schupp <roderich.schupp@gmail.com>
++Author: gregor herrmann <gregoa@debian.org>
++Bug-Debian: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=788705
++Bug-Debian: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=826471
++Bug-Upstream: https://bugs.launchpad.net/intltool/+bug/1490906
++
++Index: intltool-0.51.0/intltool-update.in
++===================================================================
++--- intltool-0.51.0.orig/intltool-update.in	2017-07-23 17:24:35.113169465 +0200
+++++ intltool-0.51.0/intltool-update.in	2017-07-23 17:24:35.109169052 +0200
++@@ -1062,13 +1062,13 @@
++ 	}
++     }
++ 
++-    if ($str =~ /^(.*)\${?([A-Z_]+)}?(.*)$/)
+++    if ($str =~ /^(.*)\$\{?([A-Z_]+)}?(.*)$/)
++     {
++ 	my $rest = $3;
++ 	my $untouched = $1;
++ 	my $sub = "";
++         # Ignore recursive definitions of variables
++-        $sub = $varhash{$2} if defined $varhash{$2} and $varhash{$2} !~ /\${?$2}?/;
+++        $sub = $varhash{$2} if defined $varhash{$2} and $varhash{$2} !~ /\$\{?$2}?/;
++ 
++ 	return SubstituteVariable ("$untouched$sub$rest");
++     }
++@@ -1190,10 +1190,10 @@
++ 	$name    =~ s/\(+$//g;
++ 	$version =~ s/\(+$//g;
++ 
++-	$varhash{"PACKAGE_NAME"} = $name if (not $name =~ /\${?AC_PACKAGE_NAME}?/);
++-	$varhash{"PACKAGE"} = $name if (not $name =~ /\${?PACKAGE}?/);
++-	$varhash{"PACKAGE_VERSION"} = $version if (not $name =~ /\${?AC_PACKAGE_VERSION}?/);
++-	$varhash{"VERSION"} = $version if (not $name =~ /\${?VERSION}?/);
+++	$varhash{"PACKAGE_NAME"} = $name if (not $name =~ /\$\{?AC_PACKAGE_NAME}?/);
+++	$varhash{"PACKAGE"} = $name if (not $name =~ /\$\{?PACKAGE}?/);
+++	$varhash{"PACKAGE_VERSION"} = $version if (not $name =~ /\$\{?AC_PACKAGE_VERSION}?/);
+++	$varhash{"VERSION"} = $version if (not $name =~ /\$\{?VERSION}?/);
++     }
++ 
++     if ($conf_source =~ /^AC_INIT\(([^,\)]+),([^,\)]+)[,]?([^,\)]+)?/m)
++@@ -1219,11 +1219,11 @@
++ 	$version =~ s/\(+$//g;
++         $bugurl  =~ s/\(+$//g if (defined $bugurl);
++ 
++-	$varhash{"PACKAGE_NAME"} = $name if (not $name =~ /\${?AC_PACKAGE_NAME}?/);
++-	$varhash{"PACKAGE"} = $name if (not $name =~ /\${?PACKAGE}?/);
++-	$varhash{"PACKAGE_VERSION"} = $version if (not $name =~ /\${?AC_PACKAGE_VERSION}?/);
++-	$varhash{"VERSION"} = $version if (not $name =~ /\${?VERSION}?/);
++-        $varhash{"PACKAGE_BUGREPORT"} = $bugurl if (defined $bugurl and not $bugurl =~ /\${?\w+}?/);
+++	$varhash{"PACKAGE_NAME"} = $name if (not $name =~ /\$\{?AC_PACKAGE_NAME}?/);
+++	$varhash{"PACKAGE"} = $name if (not $name =~ /\$\{?PACKAGE}?/);
+++	$varhash{"PACKAGE_VERSION"} = $version if (not $name =~ /\$\{?AC_PACKAGE_VERSION}?/);
+++	$varhash{"VERSION"} = $version if (not $name =~ /\$\{?VERSION}?/);
+++        $varhash{"PACKAGE_BUGREPORT"} = $bugurl if (defined $bugurl and not $bugurl =~ /\$\{?\w+}?/);
++     }
++ 
++     # \s makes this not work, why?
+diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference xtrkcad-fork-xtrkcad/distribution/flatpak/xtrkcad.desktop new-fork-xtrkcad/distribution/flatpak/xtrkcad.desktop
+--- xtrkcad-fork-xtrkcad/distribution/flatpak/xtrkcad.desktop	1969-12-31 19:00:00.000000000 -0500
++++ new-fork-xtrkcad/distribution/flatpak/xtrkcad.desktop	2026-10-15 12:42:04.543711481 -0400
+@@ -0,0 +1,8 @@
++[Desktop Entry]
++Name=XTrackCAD
++Comment=Design model railroad layouts
++Exec=run-xtrkcad.sh
++Icon=io.sourceforge.xtrkcad_fork.xtrkcad
++Terminal=false
++Type=Application
++Categories=Graphics
