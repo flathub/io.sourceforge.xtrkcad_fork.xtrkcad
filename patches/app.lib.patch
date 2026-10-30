@@ -1,6 +1,6 @@
 diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference ken-source-orig/app/lib/CMakeLists.txt ken-source-new/app/lib/CMakeLists.txt
 --- ken-source-orig/app/lib/CMakeLists.txt	2026-10-29 04:15:08.000000000 -0400
-+++ ken-source-new/app/lib/CMakeLists.txt	2026-10-29 10:38:37.001730430 -0400
++++ ken-source-new/app/lib/CMakeLists.txt	2026-10-29 11:37:17.172263754 -0400
 @@ -67,14 +67,25 @@
          )
  	install(FILES
@@ -31,7 +31,7 @@ diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference ken-source-orig/app/l
  endif()
 diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference ken-source-orig/app/lib/xtrkcad.desktop ken-source-new/app/lib/xtrkcad.desktop
 --- ken-source-orig/app/lib/xtrkcad.desktop	2026-10-29 04:15:08.000000000 -0400
-+++ ken-source-new/app/lib/xtrkcad.desktop	2026-10-29 10:38:37.001884821 -0400
++++ ken-source-new/app/lib/xtrkcad.desktop	2026-10-29 11:37:17.172423025 -0400
 @@ -1,9 +1,8 @@
  [Desktop Entry]
  Name=XTrackCAD
@@ -46,7 +46,7 @@ diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference ken-source-orig/app/l
 -
 diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference ken-source-orig/app/lib/xtrkcad_logo_128x128.svg ken-source-new/app/lib/xtrkcad_logo_128x128.svg
 --- ken-source-orig/app/lib/xtrkcad_logo_128x128.svg	1969-12-31 19:00:00.000000000 -0500
-+++ ken-source-new/app/lib/xtrkcad_logo_128x128.svg	2026-10-29 10:38:37.001988622 -0400
++++ ken-source-new/app/lib/xtrkcad_logo_128x128.svg	2026-10-29 11:37:17.172528066 -0400
 @@ -0,0 +1,24 @@
 +<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 +<!-- Created with Inkscape (http://www.inkscape.org/) -->
@@ -74,8 +74,8 @@ diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference ken-source-orig/app/l
 +</svg>
 diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference ken-source-orig/app/lib/xtrkcad.metainfo.xml ken-source-new/app/lib/xtrkcad.metainfo.xml
 --- ken-source-orig/app/lib/xtrkcad.metainfo.xml	1969-12-31 19:00:00.000000000 -0500
-+++ ken-source-new/app/lib/xtrkcad.metainfo.xml	2026-10-29 11:22:57.560999949 -0400
-@@ -0,0 +1,55 @@
++++ ken-source-new/app/lib/xtrkcad.metainfo.xml	2026-10-30 10:00:16.797451822 -0400
+@@ -0,0 +1,64 @@
 +<?xml version="1.0" encoding="UTF-8"?>
 +<component type="desktop-application">
 +  <id>io.sourceforge.xtrkcad_fork.xtrkcad</id>
@@ -86,6 +86,15 @@ diff -uNrb -X /home/kshaffer/.diff_ignore --no-dereference ken-source-orig/app/l
 +    <p><em>Flatpak not officially supported, yet ;-) ; search for "flatpak" from the faq/home wiki</em></p>
 +  </description>
 +  <releases>
++    <release version="5.3.1HS1-fp2" date="2026-10-30">
++        <description>
++            <ul>
++                <li>Fixes several issues in 5.3.1GA</li>
++                <li>Enabled export as svg</li>
++                <li>See https://sourceforge.net/projects/xtrkcad-fork/files/XTrackCad/Version%205.3.1%20HS1/</li>
++            </ul>
++        </description>
++    </release>
 +    <release version="5.3.1HS1-fp1" date="2026-10-29">
 +        <description>
 +            <ul>
