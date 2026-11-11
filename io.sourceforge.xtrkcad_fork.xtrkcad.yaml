@@ -1,6 +1,6 @@
 id: io.sourceforge.xtrkcad_fork.xtrkcad
 runtime: org.freedesktop.Platform
-runtime-version: '25.08'
+runtime-version: '26.08'
 sdk: org.freedesktop.Sdk
 command: run-xtrkcad.sh
 
@@ -11,6 +11,7 @@ finish-args:
   - --share=ipc
   - --device=dri
   - --filesystem=home
+  - --env=XTRKCAD_APP_ID=io.sourceforge.xtrkcad_fork.xtrkcad
 
 modules:
   - name: libzip
@@ -33,12 +34,21 @@ modules:
       - -DCMAKE_POLICY_VERSION_MINIMUM=3.5
     sources:
       - type: archive
-        url: https://github.com/nih-at/libzip/releases/download/v1.8.0/libzip-1.8.0.tar.gz
-        sha256: 30ee55868c0a698d3c600492f2bea4eb62c53849bcf696d21af5eb65f3f3839e
+        url: https://github.com/nih-at/libzip/releases/download/v1.11.4/libzip-1.11.4.tar.gz
+        sha256: 82e9f2f2421f9d7c2466bbc3173cd09595a88ea37db0d559a9d0a2dc60dc722e
     cleanup:
       - '*'
 
-  - shared-modules/gtk2/gtk2.json
+  - name: mxml
+    buildsystem: autotools
+    config-opts:
+      - --prefix=/app
+    sources:
+      - type: archive
+        url: https://github.com/michaelrsweet/mxml/releases/download/v3.3.1/mxml-3.3.1.tar.gz
+        sha256: 0c663ed1fe393b5619f80101798202eea43534abd7c8aff389022fd8c1dacc32
+    cleanup:
+      - '*'
 
   - name: fake-inkscape
     buildsystem: simple
@@ -57,8 +67,10 @@ modules:
     buildsystem: cmake-ninja
     config-opts:
       - -DXTRKCAD_BUILD_FLATPAK=1
+      - -DXTRKCAD_FLATPAK_NOVERSION=1
+      - -DXTRKCAD_APPEND_SRC_HASH=OFF
     sources:
       - type: archive
-        url: https://download.sourceforge.net/project/xtrkcad-fork/Development/Flatpak/TestSources/source.tar.gz
-        sha256: a9764aa3a03d1871c3491fffe725c80a03a65f7699347cefaed6c9d71d36adb4
+        url: https://download.sourceforge.net/project/xtrkcad-fork/Development/Flatpak/TestSources/source-5.4.0.dfc1fd952001.tar.gz
+        sha256: e9fdfe2e53a597156c69019c3ef7ac6ef19b3b4c24b21c2ea051ae9a4483feb7
     builddir: true
